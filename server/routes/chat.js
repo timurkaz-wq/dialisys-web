@@ -77,16 +77,22 @@ router.post('/', async (req, res) => {
     ];
 
     // Запрос к MedGemma (с автофallback на Qwen если недоступна)
-    const aiResponse = await chatMedGemma(messages);
-    if (!aiResponse) throw new Error('LLM не ответил');
+    const result = await chatMedGemma(messages);
+    if (!result) throw new Error('LLM не ответил');
+
+    // result может быть строкой (fallback) или объектом { content, model }
+    const aiText  = typeof result === 'string' ? result : result.content;
+    const aiModel = typeof result === 'string' ? 'Qwen3 235B' : (result.model || 'MedGemma 4B');
+
+    if (!aiText) throw new Error('LLM не ответил');
 
     // Сохранить ответ ассистента
     await query(
       'INSERT INTO chat_history (role, content) VALUES ($1, $2)',
-      ['assistant', aiResponse]
+      ['assistant', aiText]
     );
 
-    res.json({ response: aiResponse });
+    res.json({ response: aiText, model: aiModel });
   } catch (e) {
     console.error('[Chat]', e.message);
     res.status(500).json({ error: e.message });

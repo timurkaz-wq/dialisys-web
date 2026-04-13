@@ -43,7 +43,7 @@ function markdownToHtml(text) {
 }
 
 // ── Добавить сообщение в DOM ──
-function appendChatMessage(role, content, isTyping = false) {
+function appendChatMessage(role, content, isTyping = false, model = null) {
   const container = document.getElementById('chatMessages');
   const msgDiv = document.createElement('div');
   msgDiv.className = `chat-msg ${role}${isTyping ? ' typing' : ''}`;
@@ -58,6 +58,15 @@ function appendChatMessage(role, content, isTyping = false) {
   }
 
   msgDiv.appendChild(bubble);
+
+  // Бейджик с именем модели под ответом ассистента
+  if (role === 'assistant' && !isTyping && model) {
+    const badge = document.createElement('div');
+    badge.className = 'chat-model-badge';
+    badge.textContent = model;
+    msgDiv.appendChild(badge);
+  }
+
   container.appendChild(msgDiv);
   return msgDiv;
 }
@@ -92,9 +101,9 @@ async function sendChat() {
       body:   JSON.stringify({ message, include_context: includeContext }),
     });
 
-    // Убрать "печатает" и добавить ответ
+    // Убрать "печатает" и добавить ответ с именем модели
     typingDiv.remove();
-    appendChatMessage('assistant', res.response);
+    appendChatMessage('assistant', res.response, false, res.model);
     scrollChat();
   } catch (e) {
     typingDiv.remove();

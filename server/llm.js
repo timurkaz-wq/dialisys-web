@@ -121,7 +121,7 @@ async function chatMedGemma(messages) {
     if (content) {
       content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
     }
-    return content;
+    return { content, model: 'MedGemma 4B' };
 
   } catch (err) {
     console.error('[MedGemma] Сетевая ошибка:', err.message);

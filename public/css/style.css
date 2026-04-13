@@ -750,6 +750,15 @@ select.input-field {
 
 .chat-msg.typing .chat-bubble { color: var(--text3); font-style: italic; }
 
+.chat-model-badge {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  padding-left: 4px;
+  opacity: 0.7;
+}
+
 .chat-input-area {
   position: sticky;
   bottom: calc(var(--nav-h) + 14px);
