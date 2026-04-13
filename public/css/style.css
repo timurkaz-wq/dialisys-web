@@ -907,16 +907,28 @@ select.input-field {
 @media (min-width: 600px) {
   .app-main { padding: 20px 20px 0; }
 
+  /* Шапка — фиксированная на десктопе */
+  .app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 102;
+  }
+
   .tab-nav {
+    position: fixed;
     top: var(--header-h);
     bottom: auto;
     border-top: none;
     border-bottom: 1px solid var(--border);
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     height: 52px;
+    z-index: 101;
   }
 
-  body { padding-bottom: 0; padding-top: 52px; }
+  /* Отступ = шапка (64px) + таб-навигация (52px) */
+  body { padding-bottom: 0; padding-top: calc(var(--header-h) + 52px); }
 
   .tab-btn { font-size: 11px; flex-direction: row; gap: 6px; }
   .tab-icon { font-size: 16px; }
