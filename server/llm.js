@@ -76,10 +76,57 @@ async function chatFood(messages) {
 }
 
 // ══════════════════════════════════════════════
-//  Вызов для медицинского чата (мощная модель)
+//  Вызов для медицинского чата (мощная модель OpenRouter)
 // ══════════════════════════════════════════════
 async function chatMedical(messages) {
   return chat({ messages, model: cfg.MODEL_CHAT, temperature: 0.5, maxTokens: 2000 });
 }
 
-module.exports = { chat, chatFood, chatMedical };
+// ══════════════════════════════════════════════
+//  DR7.ai — MedGemma (специализированная медицинская модель)
+// ══════════════════════════════════════════════
+const DR7_URL = 'https://dr7.ai/api/v1/medical/chat/completions';
+
+async function chatMedGemma(messages) {
+  const apiKey = process.env.DR7_API_KEY;
+  if (!apiKey) {
+    console.warn('[MedGemma] DR7_API_KEY не задан — переключаюсь на Qwen');
+    return chatMedical(messages);
+  }
+
+  try {
+    const response = await fetch(DR7_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        model:      cfg.MODEL_MEDGEMMA,
+        messages,
+        max_tokens:  2000,
+        temperature: 0.5,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[MedGemma] Ошибка ${response.status}:`, errText);
+      console.warn('[MedGemma] Переключаюсь на Qwen...');
+      return chatMedical(messages);
+    }
+
+    const data = await response.json();
+    let content = data.choices?.[0]?.message?.content || null;
+    if (content) {
+      content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    }
+    return content;
+
+  } catch (err) {
+    console.error('[MedGemma] Сетевая ошибка:', err.message);
+    return chatMedical(messages); // fallback на Qwen
+  }
+}
+
+module.exports = { chat, chatFood, chatMedical, chatMedGemma };

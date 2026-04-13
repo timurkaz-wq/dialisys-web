@@ -70,4 +70,7 @@ module.exports = {
   MODEL_FOOD:     process.env.MODEL_FOOD     || 'qwen/qwen3-30b-a3b',
   MODEL_CHAT:     process.env.MODEL_CHAT     || 'qwen/qwen3-235b-a22b',
   MODEL_FALLBACK: process.env.MODEL_FALLBACK || 'google/gemini-2.0-flash-exp:free',
+
+  // ── DR7.ai — MedGemma (медицинский чат) ──
+  MODEL_MEDGEMMA: process.env.MODEL_MEDGEMMA || 'medgemma-4b-it',
 };

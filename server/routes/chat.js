@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════
 const { Router }       = require('express');
 const { query }        = require('../db');
-const { chatMedical }  = require('../llm');
+const { chatMedGemma } = require('../llm');
 const cfg              = require('../config');
 
 const router = Router();
@@ -76,8 +76,8 @@ router.post('/', async (req, res) => {
       ...conversationHistory,
     ];
 
-    // Запрос к LLM
-    const aiResponse = await chatMedical(messages);
+    // Запрос к MedGemma (с автофallback на Qwen если недоступна)
+    const aiResponse = await chatMedGemma(messages);
     if (!aiResponse) throw new Error('LLM не ответил');
 
     // Сохранить ответ ассистента
