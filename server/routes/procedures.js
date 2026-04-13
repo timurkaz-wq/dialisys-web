@@ -114,7 +114,7 @@ router.post('/', async (req, res) => {
 
     const { rows } = await query(`
       INSERT INTO procedures (
-        date, weekday, shift, shift_time,
+        date, weekday, shift, shift_time, status,
         current_weight, dry_weight, target_weight,
         fluid_ml, uf_ml_h, uf_mlkg_h,
         recommended_time, actual_time,
@@ -128,13 +128,14 @@ router.post('/', async (req, res) => {
       ) VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
         $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
-        $23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34
+        $23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35
       ) RETURNING *
     `, [
       date || new Date().toISOString().slice(0,10),
       weekday,
       shift || '3',
       shift_time || '15:30',
+      req.body.status || 'complete',
       cw, dw, calc.safeFloat(target_weight) || dw,
       machineSettings.fluidMl,
       parseFloat(ufMlH.toFixed(1)),
@@ -179,6 +180,105 @@ router.post('/', async (req, res) => {
       ufRating:            calc.ufRating(ufMlkgH),
       loadRating:          calc.loadRating(loading),
       finalStatus:         status,
+      nextRecommendations,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PATCH /api/procedures/:id — завершить черновик (дополнить данные после сеанса)
+router.patch('/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const {
+      bp_during, bp_after,
+      art_pressure, ven_pressure,
+      actual_time,
+      symptoms_during, symptoms_after,
+      cramps, hypotension, notes,
+    } = req.body;
+
+    // Загрузить текущую запись
+    const { rows: existing } = await query('SELECT * FROM procedures WHERE id = $1', [id]);
+    if (!existing[0]) return res.status(404).json({ error: 'Сеанс не найден' });
+    const proc = existing[0];
+
+    // Загрузить анализы
+    const { rows: anaRows } = await query('SELECT * FROM analyses ORDER BY month_key DESC LIMIT 1');
+    const analysis = anaRows[0] || null;
+
+    // Пересчитать с учётом фактического времени и новых симптомов
+    const dw = parseFloat(proc.dry_weight);
+    const cw = parseFloat(proc.current_weight);
+    const bpSys = _parseSystolic(proc.bp_before);
+    const crampsVal = parseInt(cramps ?? proc.cramps ?? 0);
+    const hypoVal   = parseInt(hypotension ?? proc.hypotension ?? 0);
+
+    const machineSettings = calc.calcMachineSettings({
+      dryWeight: dw, currentWeight: cw, analysis,
+      bpSystolic: bpSys, cramps: crampsVal, hypotension: hypoVal,
+    });
+
+    const hoursUsed = calc.safeFloat(actual_time) || parseFloat(proc.recommended_time);
+    const { ufMlH, ufMlkgH } = calc.calcUF(dw, machineSettings.fluidMl, hoursUsed);
+    const loading = machineSettings.fluidMl / dw;
+    const urrOk = analysis?.urea_b && analysis?.urea_a
+      ? calc.calcUrr(calc.safeFloat(analysis.urea_b), calc.safeFloat(analysis.urea_a)).urr >= 65
+      : false;
+    const status = calc.finalStatus(ufMlkgH, urrOk);
+
+    const nextRecommendations = _analyzeForNextSession({
+      bp_before: proc.bp_before, bp_during, bp_after,
+      symptoms_during: symptoms_during || {},
+      symptoms_after:  symptoms_after  || {},
+      ufMlkgH, cramps: crampsVal,
+    });
+
+    const { rows } = await query(`
+      UPDATE procedures SET
+        bp_during=$1, bp_after=$2,
+        art_pressure=$3, ven_pressure=$4,
+        actual_time=$5,
+        symptoms_during=$6, symptoms_after=$7,
+        cramps=$8, hypotension=$9,
+        dialysate_k=$10, dialysate_na=$11, dialysate_ca=$12,
+        dialysate_hco3=$13, dialysate_temp=$14,
+        uf_ml_h=$15, uf_mlkg_h=$16,
+        final_status=$17, final_color=$18,
+        notes=$19, status='complete'
+      WHERE id=$20 RETURNING *
+    `, [
+      bp_during, bp_after,
+      art_pressure, ven_pressure,
+      hoursUsed,
+      JSON.stringify(symptoms_during || {}),
+      JSON.stringify(symptoms_after  || {}),
+      crampsVal, hypoVal,
+      machineSettings.dialysate.k,
+      machineSettings.dialysate.na,
+      machineSettings.dialysate.ca,
+      machineSettings.dialysate.hco3,
+      machineSettings.dialysate.temp,
+      parseFloat(ufMlH.toFixed(1)),
+      parseFloat(ufMlkgH.toFixed(2)),
+      status.text, status.color,
+      notes, id,
+    ]);
+
+    res.json({
+      procedure: rows[0],
+      machineSettings,
+      fluidMl:         machineSettings.fluidMl,
+      recommendedTime: machineSettings.recommendedTime,
+      minSafeTimeH:    machineSettings.minSafeTimeH,
+      ufMlH:           parseFloat(ufMlH.toFixed(1)),
+      ufMlkgH:         parseFloat(ufMlkgH.toFixed(2)),
+      loadingMlKg:     parseFloat(loading.toFixed(1)),
+      ufRating:        calc.ufRating(ufMlkgH),
+      loadRating:      calc.loadRating(loading),
+      finalStatus:     status,
       nextRecommendations,
     });
   } catch (e) {

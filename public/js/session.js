@@ -2,9 +2,12 @@
    session.js — сеанс диализа + настройки аппарата
    ══════════════════════════════════════════════ */
 
-// ── Собрать данные формы ──
 const SHIFT_TIMES = { '1': '06:00', '2': '10:30', '3': '15:00' };
 
+// ID текущего черновика (если сеанс уже начат сегодня)
+window.currentDraftId = null;
+
+// ── Собрать данные формы ──
 function getSessionFormData() {
   const shift = document.getElementById('sessionShift')?.value || '3';
   return {
@@ -32,9 +35,53 @@ function getChecked(containerId) {
   const container = document.getElementById(containerId);
   const checked = {};
   container.querySelectorAll('input[type=checkbox]:checked').forEach(cb => {
-    checked[cb.value] = 2; // умеренная выраженност�� по умолчанию
+    checked[cb.value] = 2;
   });
   return checked;
+}
+
+// ══════════════════════════════════════════════
+//  Проверить черновик сегодня
+// ══════════════════════════════════════════════
+async function checkTodayDraft() {
+  try {
+    const res = await apiFetch('/procedures/today');
+    if (res && res.status === 'draft') {
+      window.currentDraftId = res.id;
+      _loadDraftToForm(res);
+      _showFinishMode(res);
+    }
+  } catch { /* нет черновика — ок */ }
+}
+
+function _loadDraftToForm(p) {
+  if (p.date) document.getElementById('sessionDate').value = p.date;
+  if (p.shift) document.getElementById('sessionShift').value = p.shift;
+  if (p.current_weight) document.getElementById('currentWeight').value = p.current_weight;
+  if (p.dry_weight)     document.getElementById('dryWeight').value     = p.dry_weight;
+  if (p.bp_before)      document.getElementById('bpBefore').value      = p.bp_before;
+}
+
+function _showFinishMode(p) {
+  // Показать кнопку "Завершить", скрыть "Начало"
+  document.getElementById('btnStartSession').classList.add('hidden');
+  document.getElementById('btnFinishSession').classList.remove('hidden');
+
+  // Баннер с подсказкой
+  const banner = document.getElementById('sessionDraftBanner');
+  const shiftLabel = { '1': '1-я (06:00)', '2': '2-я (10:30)', '3': '3-я (15:00)' }[p.shift] || p.shift;
+  banner.innerHTML = `
+    ✅ <b>Начало сеанса зафиксировано</b> — ${shiftLabel} смена.<br>
+    Дополни АД во время/после, симптомы и фактическое время — затем нажми <b>«Завершить сеанс»</b>.
+  `;
+  banner.classList.remove('hidden');
+}
+
+function _showStartMode() {
+  document.getElementById('btnStartSession').classList.remove('hidden');
+  document.getElementById('btnFinishSession').classList.add('hidden');
+  document.getElementById('sessionDraftBanner').classList.add('hidden');
+  window.currentDraftId = null;
 }
 
 // ══════════════════════════════════════════════
@@ -51,15 +98,85 @@ async function calculate() {
       method: 'POST',
       body:   JSON.stringify(data),
     });
-
     window.lastCalcResult = res;
     renderSessionResult(res, result);
-
-    // Обновить вкладку аппарата сразу
     renderMachineSettings(res);
     showToast('✅ Расчёт выполнен', 'success');
   } catch (e) {
     result.innerHTML = `<div class="result-line" style="color:#e74c3c">❌ ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════
+//  НАЧАЛО СЕАНСА — сохранить черновик
+// ══════════════════════════════════════════════
+async function startSession() {
+  const data = getSessionFormData();
+  if (!data.current_weight || !data.dry_weight) {
+    showToast('⚠️ Введите текущий и сухой вес', 'warn');
+    return;
+  }
+  if (!data.bp_before) {
+    showToast('⚠️ Введите АД до диализа', 'warn');
+    return;
+  }
+
+  try {
+    const res = await apiFetch('/procedures', {
+      method: 'POST',
+      body:   JSON.stringify({ ...data, status: 'draft' }),
+    });
+
+    window.currentDraftId = res.procedure.id;
+    window.lastCalcResult = res;
+
+    renderSessionResult(res, document.getElementById('sessionResult'));
+    document.getElementById('sessionResult').classList.remove('hidden');
+    renderMachineSettings(res);
+
+    _showFinishMode(res.procedure);
+    showToast('🏁 Начало сеанса зафиксировано', 'success');
+  } catch (e) {
+    showToast(`❌ Ошибка: ${e.message}`, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════
+//  ЗАВЕРШИТЬ СЕАНС — дополнить черновик
+// ══════════════════════════════════════════════
+async function finishSession() {
+  if (!window.currentDraftId) {
+    showToast('⚠️ Сначала зафиксируй начало сеанса', 'warn');
+    return;
+  }
+
+  const data = getSessionFormData();
+
+  try {
+    const res = await apiFetch(`/procedures/${window.currentDraftId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        bp_during:       data.bp_during,
+        bp_after:        data.bp_after,
+        art_pressure:    data.art_pressure,
+        ven_pressure:    data.ven_pressure,
+        actual_time:     data.actual_time,
+        symptoms_during: data.symptoms_during,
+        symptoms_after:  data.symptoms_after,
+        cramps:          data.cramps,
+        hypotension:     data.hypotension,
+      }),
+    });
+
+    window.lastCalcResult = res;
+    renderSessionResult(res, document.getElementById('sessionResult'));
+    document.getElementById('sessionResult').classList.remove('hidden');
+    renderMachineSettings(res);
+
+    _showStartMode();
+    showToast('✅ Сеанс завершён и сохранён', 'success');
+  } catch (e) {
+    showToast(`❌ Ошибка: ${e.message}`, 'error');
   }
 }
 
@@ -72,7 +189,6 @@ function renderSessionResult(res, container) {
   const { fluidMl, recommendedTime, minSafeTimeH, ufMlH, ufMlkgH,
           loadingMlKg, ufRating, loadRating, finalStatus, machineSettings } = res;
 
-  // Итоговый статус — крупно
   const statusEl = document.createElement('div');
   statusEl.className = 'result-line bold';
   statusEl.style.cssText = `color:${finalStatus.color}; font-size:17px; padding:10px 0`;
@@ -87,10 +203,8 @@ function renderSessionResult(res, container) {
     { text: `📊 UF: ${Math.round(ufMlH)} мл/ч  |  ${ufMlkgH} мл/кг/ч  — ${ufRating.text}`, color: ufRating.color },
     { text: `💪 Нагрузка: ${loadingMlKg} мл/кг — ${loadRating.text}`, color: loadRating.color },
   ];
-
   lines.forEach(l => container.appendChild(renderResultLine(l.text, l.color, l.bold)));
 
-  // Настройки аппарата — краткий блок
   if (machineSettings?.dialysate) {
     container.appendChild(renderResultLine('─── Настройки аппарата ───', '#5f6368'));
     const d = machineSettings.dialysate;
@@ -117,18 +231,14 @@ function renderSessionResult(res, container) {
       el.textContent = `${tip.icon} ${tip.text}`;
       recDiv.appendChild(el);
     });
-
     container.appendChild(recDiv);
   }
 
-  // Кнопка перейти на аппарат
   const btnMachine = document.createElement('button');
   btnMachine.className = 'btn btn-outline';
   btnMachine.style.marginTop = '10px';
   btnMachine.textContent = '💧 Открыть настройки аппарата';
-  btnMachine.onclick = () => {
-    document.querySelector('[data-tab="machine"]').click();
-  };
+  btnMachine.onclick = () => document.querySelector('[data-tab="machine"]').click();
   container.appendChild(btnMachine);
 }
 
@@ -144,7 +254,6 @@ function renderMachineSettings(res) {
 
   container.innerHTML = '';
 
-  // Главная карточка — время
   const highlightDiv = document.createElement('div');
   highlightDiv.className = 'machine-highlight';
   highlightDiv.innerHTML = `
@@ -154,7 +263,6 @@ function renderMachineSettings(res) {
   `;
   container.appendChild(highlightDiv);
 
-  // UF статус
   const ufDiv = document.createElement('div');
   ufDiv.className = 'card';
   ufDiv.innerHTML = `
@@ -163,7 +271,6 @@ function renderMachineSettings(res) {
   `;
   container.appendChild(ufDiv);
 
-  // Сетка настроек
   const settings = [
     { label: 'Qb — кровоток',   value: machineSettings.qb,   unit: 'мл/мин' },
     { label: 'Qd — диализат',   value: machineSettings.qd,   unit: 'мл/мин' },
@@ -176,7 +283,6 @@ function renderMachineSettings(res) {
 
   const grid = document.createElement('div');
   grid.className = 'machine-grid';
-
   settings.forEach(s => {
     const item = document.createElement('div');
     item.className = 'machine-item';
@@ -188,11 +294,6 @@ function renderMachineSettings(res) {
     grid.appendChild(item);
   });
   container.appendChild(grid);
-
-  // Источники данных
-  const infoDiv = document.createElement('div');
-  infoDiv.className = 'card info-card';
-  infoDiv.style.marginTop = '10px';
 
   const MONTHS_RU = ['','Январь','Февраль','Март','Апрель','Май','Июнь',
                      'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -209,6 +310,9 @@ function renderMachineSettings(res) {
     anaInfo = `${monthName}${parts.length ? ': ' + parts.join(', ') : ''}`;
   }
 
+  const infoDiv = document.createElement('div');
+  infoDiv.className = 'card info-card';
+  infoDiv.style.marginTop = '10px';
   infoDiv.innerHTML = `
     <div class="info-text">
       📋 Анализы: <b>${anaInfo}</b><br>
@@ -218,32 +322,12 @@ function renderMachineSettings(res) {
   container.appendChild(infoDiv);
 }
 
-// ══════════════════════════════════════════════
-//  СОХРАНИТЬ СЕАНС
-// ══════════════════════════════════════════════
-async function saveSession() {
-  const data = getSessionFormData();
-  if (!data.current_weight || !data.dry_weight) {
-    showToast('⚠️ Введите текущий и сухой вес', 'warn');
-    return;
-  }
-
-  try {
-    const res = await apiFetch('/procedures', {
-      method: 'POST',
-      body:   JSON.stringify(data),
-    });
-    showToast('✅ Сеанс сохранён', 'success');
-    window.lastCalcResult = { ...res, machineSettings: res.machineSettings };
-    renderSessionResult(window.lastCalcResult, document.getElementById('sessionResult'));
-    document.getElementById('sessionResult').classList.remove('hidden');
-  } catch (e) {
-    showToast(`❌ Ошибка: ${e.message}`, 'error');
-  }
-}
-
 // ── Привязка кнопок ──
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btnCalculate')  ?.addEventListener('click', calculate);
-  document.getElementById('btnSaveSession')?.addEventListener('click', saveSession);
+  document.getElementById('btnCalculate')   ?.addEventListener('click', calculate);
+  document.getElementById('btnStartSession') ?.addEventListener('click', startSession);
+  document.getElementById('btnFinishSession')?.addEventListener('click', finishSession);
+
+  // Проверить черновик при загрузке
+  checkTodayDraft();
 });

@@ -195,8 +195,10 @@
     <!-- Кнопки -->
     <div class="btn-row">
       <button class="btn btn-primary" id="btnCalculate">⚡ Рассчитать</button>
-      <button class="btn btn-success" id="btnSaveSession">💾 Сохранить сеанс</button>
+      <button class="btn btn-success" id="btnStartSession">🏁 Начало сеанса</button>
+      <button class="btn btn-success hidden" id="btnFinishSession" style="background:#27ae60">✅ Завершить сеанс</button>
     </div>
+    <div id="sessionDraftBanner" class="hidden" style="background:#e8f5e9;border-left:4px solid #27ae60;padding:10px 14px;border-radius:8px;margin-top:8px;font-size:13px"></div>
 
     <!-- Результат расчёта -->
     <div id="sessionResult" class="result-area hidden"></div>
