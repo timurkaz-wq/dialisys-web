@@ -69,10 +69,50 @@ async function saveAnalysis() {
   }
 }
 
+// ── Автозаполнение формы последними анализами ──
+async function autoFillAnalysisForm() {
+  try {
+    const analyses = await apiFetch('/analyses');
+    if (!analyses.length) return;
+
+    // Берём самый свежий анализ
+    const latest = analyses[0];
+
+    // Заполняем форму только если поля пустые (не перетираем то, что вводит пользователь)
+    const monthEl = document.getElementById('analysisMonth');
+    if (!monthEl.value || monthEl.value === currentMonthKey()) {
+      // Показываем месяц последнего анализа
+      monthEl.value = latest.month_key;
+    }
+
+    // Заполняем поля значениями из последнего анализа
+    const fill = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = val || '';
+    };
+
+    fill('anaK',          latest.k);
+    fill('anaNa',         latest.na);
+    fill('anaCa',         latest.ca);
+    fill('anaHco3',       latest.hco3);
+    fill('anaP',          latest.p);
+    fill('anaPth',        latest.pth);
+    fill('anaMg',         latest.mg);
+    fill('anaCreatinine', latest.creatinine);
+    fill('anaHb',         latest.hb);
+    fill('anaAlbumin',    latest.albumin);
+    fill('anaUreaB',      latest.urea_b);
+    fill('anaUreaA',      latest.urea_a);
+  } catch { /* нет анализов — ок */ }
+}
+
 // ── Загрузить историю анализов ──
 async function loadAnalysisHistory() {
   const container = document.getElementById('analysisHistory');
   container.innerHTML = '<div class="loading-text">Загрузка...</div>';
+
+  // Автозаполнение формы при первом открытии вкладки
+  await autoFillAnalysisForm();
 
   try {
     const analyses = await apiFetch('/analyses');
