@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="theme-color" content="#1a73e8"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>💉 Диализ-Ассистент</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!--  HEADER                               -->
+<!-- ══════════════════════════════════════ -->
+<header class="app-header">
+  <div class="header-left">
+    <span class="header-icon">💉</span>
+    <div>
+      <div class="header-title">Диализ-Ассистент</div>
+      <div class="header-sub" id="headerPatient">Загрузка...</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="header-date" id="headerDate"></span>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════ -->
+<!--  НАВИГАЦИЯ (вкладки)                  -->
+<!-- ══════════════════════════════════════ -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="session">
+    <span class="tab-icon">🏠</span>
+    <span class="tab-label">Сеанс</span>
+  </button>
+  <button class="tab-btn" data-tab="machine">
+    <span class="tab-icon">💧</span>
+    <span class="tab-label">Аппарат</span>
+  </button>
+  <button class="tab-btn" data-tab="food">
+    <span class="tab-icon">🍽️</span>
+    <span class="tab-label">Питание</span>
+  </button>
+  <button class="tab-btn" data-tab="analyses">
+    <span class="tab-icon">🧪</span>
+    <span class="tab-label">Анализы</span>
+  </button>
+  <button class="tab-btn" data-tab="history">
+    <span class="tab-icon">📅</span>
+    <span class="tab-label">История</span>
+  </button>
+  <button class="tab-btn" data-tab="chat">
+    <span class="tab-icon">💬</span>
+    <span class="tab-label">ИИ-Чат</span>
+  </button>
+</nav>
+
+<!-- ══════════════════════════════════════ -->
+<!--  ОСНОВНОЙ КОНТЕНТ                     -->
+<!-- ══════════════════════════════════════ -->
+<main class="app-main">
+
+  <!-- ── TAB: СЕАНС ── -->
+  <div class="tab-content active" id="tab-session">
+    <div class="section-title">Параметры сеанса</div>
+
+    <!-- Дата -->
+    <div class="card">
+      <div class="card-label">📅 Дата сеанса</div>
+      <input type="date" id="sessionDate" class="input-field"/>
+    </div>
+
+    <!-- Вес -->
+    <div class="card">
+      <div class="card-label">⚖️ Вес</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Текущий (кг)</label>
+          <input type="number" id="currentWeight" step="0.1" placeholder="90.0" class="input-field"/>
+        </div>
+        <div class="input-group">
+          <label>Сухой (кг)</label>
+          <input type="number" id="dryWeight" step="0.1" placeholder="85.0" class="input-field"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Давление -->
+    <div class="card">
+      <div class="card-label">🩺 Давление</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>ДО (120/80)</label>
+          <input type="text" id="bpBefore" placeholder="120/80" class="input-field"/>
+        </div>
+        <div class="input-group">
+          <label>ВО ВРЕМЯ</label>
+          <input type="text" id="bpDuring" placeholder="110/70" class="input-field"/>
+        </div>
+        <div class="input-group">
+          <label>ПОСЛЕ</label>
+          <input type="text" id="bpAfter" placeholder="115/75" class="input-field"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Время -->
+    <div class="card">
+      <div class="card-label">⏱ Время диализа</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Фактическое (ч)</label>
+          <input type="number" id="actualTime" step="0.5" placeholder="4.0" class="input-field"/>
+        </div>
+        <div class="input-group">
+          <label>Судороги (0–3)</label>
+          <input type="number" id="cramps" min="0" max="3" value="0" class="input-field"/>
+        </div>
+        <div class="input-group">
+          <label>Гипотония (0/1)</label>
+          <input type="number" id="hypotension" min="0" max="1" value="0" class="input-field"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Симптомы -->
+    <div class="card">
+      <div class="card-label">🩹 Симптомы</div>
+
+      <div class="symptom-group">
+        <div class="symptom-group-title">ДО диализа</div>
+        <div class="symptom-grid" id="symptomsBefore">
+          <label class="symptom-item"><input type="checkbox" value="Одышка"/> Одышка</label>
+          <label class="symptom-item"><input type="checkbox" value="Отёки"/> Отёки</label>
+          <label class="symptom-item"><input type="checkbox" value="Жажда"/> Жажда</label>
+          <label class="symptom-item"><input type="checkbox" value="Повышенное давление"/> Выс. давление</label>
+        </div>
+      </div>
+
+      <div class="symptom-group">
+        <div class="symptom-group-title">ВО ВРЕМЯ</div>
+        <div class="symptom-grid" id="symptomsDuring">
+          <label class="symptom-item"><input type="checkbox" value="Судороги"/> Судороги</label>
+          <label class="symptom-item"><input type="checkbox" value="Падение давления"/> Гипотония</label>
+          <label class="symptom-item"><input type="checkbox" value="Слабость"/> Слабость</label>
+          <label class="symptom-item"><input type="checkbox" value="Тошнота"/> Тошнота</label>
+          <label class="symptom-item"><input type="checkbox" value="Головокружение"/> Головокружение</label>
+        </div>
+      </div>
+
+      <div class="symptom-group">
+        <div class="symptom-group-title">ПОСЛЕ диализа</div>
+        <div class="symptom-grid" id="symptomsAfter">
+          <label class="symptom-item"><input type="checkbox" value="Слабость после"/> Слабость</label>
+          <label class="symptom-item"><input type="checkbox" value="Головная боль"/> Гол. боль</label>
+          <label class="symptom-item"><input type="checkbox" value="Долгое восстановление"/> Долгое восст.</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Доступ -->
+    <div class="card">
+      <div class="card-label">🔌 Давление доступа</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Арт. (мм рт.ст.)</label>
+          <input type="number" id="artPressure" placeholder="-180" class="input-field"/>
+        </div>
+        <div class="input-group">
+          <label>Венозное</label>
+          <input type="number" id="venPressure" placeholder="150" class="input-field"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Кнопки -->
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnCalculate">⚡ Рассчитать</button>
+      <button class="btn btn-success" id="btnSaveSession">💾 Сохранить сеанс</button>
+    </div>
+
+    <!-- Результат расчёта -->
+    <div id="sessionResult" class="result-area hidden"></div>
+  </div>
+
+  <!-- ── TAB: АППАРАТ ── -->
+  <div class="tab-content" id="tab-machine">
+    <div class="section-title">Настройки диализного аппарата</div>
+    <div class="card info-card">
+      <div class="info-text">Настройки рассчитываются автоматически на основе последних анализов и параметров сеанса.</div>
+    </div>
+    <div id="machineSettings">
+      <div class="loading-text">Нажмите «Рассчитать» на вкладке Сеанс</div>
+    </div>
+  </div>
+
+  <!-- ── TAB: ПИТАНИЕ ── -->
+  <div class="tab-content" id="tab-food">
+    <div class="section-title">Питание</div>
+
+    <!-- Дата питания — независимо от сеанса -->
+    <div class="card" style="padding:10px 14px">
+      <div class="input-row" style="align-items:center">
+        <div class="input-group">
+          <label>📅 Дата</label>
+          <input type="date" id="foodDate" class="input-field"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Дневные нормы -->
+    <div class="card norms-card" id="foodNormsCard">
+      <div class="norms-title">📊 Нормы на сегодня</div>
+      <div class="norms-row">
+        <div class="norm-item" id="normK"><span class="norm-label">Калий</span><span class="norm-val">— / 2000 мг</span></div>
+        <div class="norm-item" id="normP"><span class="norm-label">Фосфор</span><span class="norm-val">— / 800 мг</span></div>
+        <div class="norm-item" id="normNa"><span class="norm-label">Натрий</span><span class="norm-val">— / 1500 мг</span></div>
+        <div class="norm-item" id="normCal"><span class="norm-label">Калории</span><span class="norm-val">— ккал</span></div>
+      </div>
+    </div>
+
+    <!-- Ввод питания -->
+    <div class="card">
+      <div class="card-label">✍️ Добавить приём пищи</div>
+      <textarea id="foodInput" class="textarea-field" rows="3"
+        placeholder="Опишите что съели, например: каша овсяная, чай, хлеб белый 2 куска, яйцо варёное"></textarea>
+      <div class="input-row" style="margin-top:8px">
+        <select id="mealType" class="input-field">
+          <option value="breakfast">🌅 Завтрак</option>
+          <option value="lunch">☀️ Обед</option>
+          <option value="dinner">🌙 Ужин</option>
+          <option value="snack">🍎 Перекус</option>
+          <option value="meal">🍽️ Приём пищи</option>
+        </select>
+        <button class="btn btn-primary" id="btnAddFood">🤖 AI Анализ</button>
+      </div>
+      <div id="foodAnalysisResult" class="result-area hidden"></div>
+    </div>
+
+    <!-- Список за день -->
+    <div class="section-title" style="margin-top:16px">Записи за день</div>
+    <div id="foodLogList">
+      <div class="loading-text">Загрузка...</div>
+    </div>
+  </div>
+
+  <!-- ── TAB: АНАЛИЗЫ ── -->
+  <div class="tab-content" id="tab-analyses">
+    <div class="section-title">Анализы крови</div>
+
+    <div class="card info-card">
+      <div class="info-text">Вводятся раз в месяц. Влияют на настройки аппарата автоматически.</div>
+    </div>
+
+    <!-- Месяц -->
+    <div class="card">
+      <div class="card-label">📅 Месяц анализов</div>
+      <input type="month" id="analysisMonth" class="input-field"/>
+    </div>
+
+    <!-- Электролиты -->
+    <div class="card">
+      <div class="card-label">⚡ Электролиты</div>
+      <div class="input-row">
+        <div class="input-group"><label>Калий K (ммоль/л)</label><input type="number" id="anaK" step="0.01" placeholder="4.5" class="input-field"/></div>
+        <div class="input-group"><label>Натрий Na</label><input type="number" id="anaNa" step="0.1" placeholder="138" class="input-field"/></div>
+        <div class="input-group"><label>Кальций Ca</label><input type="number" id="anaCa" step="0.01" placeholder="2.3" class="input-field"/></div>
+        <div class="input-group"><label>HCO₃</label><input type="number" id="anaHco3" step="0.1" placeholder="24" class="input-field"/></div>
+      </div>
+    </div>
+
+    <!-- Почечные -->
+    <div class="card">
+      <div class="card-label">🧬 Почечные маркеры</div>
+      <div class="input-row">
+        <div class="input-group"><label>Фосфор P</label><input type="number" id="anaP" step="0.01" placeholder="1.2" class="input-field"/></div>
+        <div class="input-group"><label>ПТГ (пг/мл)</label><input type="number" id="anaPth" step="1" placeholder="200" class="input-field"/></div>
+        <div class="input-group"><label>Магний Mg</label><input type="number" id="anaMg" step="0.01" placeholder="0.9" class="input-field"/></div>
+        <div class="input-group"><label>Креатинин</label><input type="number" id="anaCreatinine" step="0.1" placeholder="800" class="input-field"/></div>
+      </div>
+    </div>
+
+    <!-- Кровь -->
+    <div class="card">
+      <div class="card-label">🩸 Кровь</div>
+      <div class="input-row">
+        <div class="input-group"><label>Гемоглобин Hb (г/л)</label><input type="number" id="anaHb" step="0.1" placeholder="120" class="input-field"/></div>
+        <div class="input-group"><label>Альбумин (г/л)</label><input type="number" id="anaAlbumin" step="0.1" placeholder="40" class="input-field"/></div>
+        <div class="input-group"><label>Мочевина ДО</label><input type="number" id="anaUreaB" step="0.1" placeholder="25" class="input-field"/></div>
+        <div class="input-group"><label>Мочевина ПОСЛЕ</label><input type="number" id="anaUreaA" step="0.1" placeholder="8" class="input-field"/></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnSaveAnalysis">💾 Сохранить анализы</button>
+    </div>
+
+    <div id="analysisResult" class="result-area hidden"></div>
+
+    <!-- История анализов -->
+    <div class="section-title" style="margin-top:20px">История анализов</div>
+    <div id="analysisHistory"><div class="loading-text">Загрузка...</div></div>
+  </div>
+
+  <!-- ── TAB: ИСТОРИЯ ── -->
+  <div class="tab-content" id="tab-history">
+    <div class="section-title">История сеансов</div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline" id="btnExportPdf">📄 PDF для врача</button>
+    </div>
+
+    <div id="historyList"><div class="loading-text">Загрузка...</div></div>
+  </div>
+
+  <!-- ── TAB: ЧАТ ── -->
+  <div class="tab-content" id="tab-chat">
+    <div class="section-title">ИИ-Нефролог</div>
+    <div class="card info-card">
+      <div class="info-text">🤖 Ассистент на основе <b>Qwen3-235B</b>. Консультирует по вопросам гемодиализа, питания и анализов. Не заменяет врача.</div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg assistant">
+        <div class="chat-bubble">Здравствуйте! Я ваш ИИ-ассистент нефролог. Задавайте вопросы о диализе, питании или анализах. Помните — мои ответы информационные, окончательное решение принимает ваш врач.</div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="chat-options">
+        <label class="checkbox-label">
+          <input type="checkbox" id="chatIncludeContext" checked/>
+          Включить данные пациента
+        </label>
+      </div>
+      <div class="chat-input-row">
+        <textarea id="chatInput" class="chat-textarea" rows="2"
+          placeholder="Спросите о питании, анализах, симптомах..."></textarea>
+        <button class="btn btn-primary chat-send" id="btnChatSend">➤</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Тост уведомления -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- Scripts -->
+<script src="/js/app.js"></script>
+<script src="/js/session.js"></script>
+<script src="/js/analyses.js"></script>
+<script src="/js/food.js"></script>
+<script src="/js/history.js"></script>
+<script src="/js/chat.js"></script>
+</body>
+</html>

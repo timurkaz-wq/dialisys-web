@@ -1,0 +1,26 @@
+{
+  "name": "dialisys-web",
+  "version": "1.0.0",
+  "description": "Персональный ИИ-ассистент пациента на гемодиализе",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0",
+    "pdfmake": "^0.2.18",
+    "pg": "^8.13.3",
+    "pg-connection-string": "^2.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
