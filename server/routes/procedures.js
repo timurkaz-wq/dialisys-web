@@ -158,19 +158,28 @@ router.post('/', async (req, res) => {
       notes,
     ]);
 
+    // Анализ симптомов и рекомендации для следующего сеанса
+    const nextRecommendations = _analyzeForNextSession({
+      bp_before, bp_during, bp_after,
+      symptoms_during: symptoms_during || {},
+      symptoms_after:  symptoms_after  || {},
+      ufMlkgH,
+      cramps: cramps || 0,
+    });
+
     res.json({
-      procedure:       rows[0],
+      procedure:           rows[0],
       machineSettings,
-      // Поля для renderSessionResult
-      fluidMl:         machineSettings.fluidMl,
-      recommendedTime: machineSettings.recommendedTime,
-      minSafeTimeH:    machineSettings.minSafeTimeH,
-      ufMlH:           parseFloat(ufMlH.toFixed(1)),
-      ufMlkgH:         parseFloat(ufMlkgH.toFixed(2)),
-      loadingMlKg:     parseFloat(loading.toFixed(1)),
-      ufRating:        calc.ufRating(ufMlkgH),
-      loadRating:      calc.loadRating(loading),
-      finalStatus:     status,
+      fluidMl:             machineSettings.fluidMl,
+      recommendedTime:     machineSettings.recommendedTime,
+      minSafeTimeH:        machineSettings.minSafeTimeH,
+      ufMlH:               parseFloat(ufMlH.toFixed(1)),
+      ufMlkgH:             parseFloat(ufMlkgH.toFixed(2)),
+      loadingMlKg:         parseFloat(loading.toFixed(1)),
+      ufRating:            calc.ufRating(ufMlkgH),
+      loadRating:          calc.loadRating(loading),
+      finalStatus:         status,
+      nextRecommendations,
     });
   } catch (e) {
     console.error(e);
@@ -227,6 +236,52 @@ function _parseSystolic(bpStr) {
   if (!bpStr) return null;
   const m = String(bpStr).match(/^(\d+)/);
   return m ? parseInt(m[1]) : null;
+}
+
+// ── Анализ сеанса → рекомендации для следующего ──
+function _analyzeForNextSession({ bp_before, bp_during, bp_after, symptoms_during, symptoms_after, ufMlkgH, cramps }) {
+  const tips = [];
+
+  const sysBefore  = _parseSystolic(bp_before);
+  const sysDuring  = _parseSystolic(bp_during);
+  const sysAfter   = _parseSystolic(bp_after);
+
+  // Гипотония во время — падение АД > 20 мм рт.ст.
+  if (sysBefore && sysDuring && (sysBefore - sysDuring) > 20) {
+    tips.push({ icon: '🔴', text: `АД упало во время диализа (${bp_before} → ${bp_during}). Следующий раз: повысить Na диализата, снизить скорость UF.`, color: '#e74c3c' });
+  }
+
+  // Гипотония после
+  if (sysBefore && sysAfter && (sysBefore - sysAfter) > 25) {
+    tips.push({ icon: '🟠', text: `АД после ниже чем до (${bp_before} → ${bp_after}). Следить за самочувствием после следующего сеанса.`, color: '#e67e22' });
+  }
+
+  // Судороги во время
+  if (cramps >= 2 || (symptoms_during['Судороги'] >= 2)) {
+    tips.push({ icon: '⚡', text: 'Судороги во время диализа. Следующий раз: Ca диализата 1.5 ммоль/л.', color: '#e67e22' });
+  }
+
+  // UF слишком высокий
+  if (ufMlkgH > 10) {
+    tips.push({ icon: '💧', text: `UF ${ufMlkgH} мл/кг/ч — слишком высокий. Постарайся набирать меньше жидкости между сеансами.`, color: '#e74c3c' });
+  }
+
+  // Долгое восстановление после
+  if (symptoms_after['Долгое восстановление'] >= 2 || symptoms_after['Долгое восстановление после'] >= 2) {
+    tips.push({ icon: '⏱', text: 'Долгое восстановление после сеанса. Следующий раз: добавить 30 минут к времени диализа.', color: '#e67e22' });
+  }
+
+  // Слабость после
+  if (symptoms_after['Слабость после'] >= 2) {
+    tips.push({ icon: '🩸', text: 'Слабость после диализа. На следующих анализах проверить Hb и альбумин.', color: '#f39c12' });
+  }
+
+  // Тошнота/головокружение во время
+  if ((symptoms_during['Тошнота'] >= 2) || (symptoms_during['Головокружение'] >= 2)) {
+    tips.push({ icon: '🟡', text: 'Тошнота или головокружение во время сеанса — возможно, UF слишком высокий или низкий Na.', color: '#f39c12' });
+  }
+
+  return tips;
 }
 
 module.exports = router;

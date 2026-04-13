@@ -123,8 +123,56 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Загрузить пи��ание за сегодня
   loadFoodToday();
 
+  // Показать рекомендации с последнего сеанса
+  try {
+    const last = await apiFetch('/procedures?limit=1');
+    if (last?.length) {
+      const p = last[0];
+      const recs = _buildLastSessionTips(p);
+      if (recs.length) {
+        const banner = document.getElementById('lastSessionBanner');
+        if (banner) {
+          banner.innerHTML = `
+            <div style="font-weight:700;margin-bottom:6px;color:#1a73e8">
+              📋 Рекомендации с последнего сеанса (${formatDate(p.date)}):
+            </div>
+            ${recs.map(r => `<div style="color:${r.color};padding:3px 0;border-left:3px solid ${r.color};padding-left:8px;margin:3px 0">${r.icon} ${r.text}</div>`).join('')}
+          `;
+          banner.classList.remove('hidden');
+        }
+      }
+    }
+  } catch { /* нет данных — ок */ }
+
   // PWA Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 });
+
+// ── Рекомендации на основе сохранённых данных сеанса ──
+function _buildLastSessionTips(p) {
+  const tips = [];
+
+  // Парсим симптомы из JSON
+  let sDuring = {}, sAfter = {};
+  try { sDuring = typeof p.symptoms_during === 'string' ? JSON.parse(p.symptoms_during) : (p.symptoms_during || {}); } catch {}
+  try { sAfter  = typeof p.symptoms_after  === 'string' ? JSON.parse(p.symptoms_after)  : (p.symptoms_after  || {}); } catch {}
+
+  const uf = parseFloat(p.uf_mlkg_h || 0);
+  if (uf > 10) tips.push({ icon: '💧', text: `UF был ${uf} мл/кг/ч — постарайся набрать меньше жидкости`, color: '#e74c3c' });
+
+  if (parseInt(p.cramps || 0) >= 2)
+    tips.push({ icon: '⚡', text: 'Были судороги — в следующий раз Ca диализата 1.5', color: '#e67e22' });
+
+  if ((sDuring['Тошнота'] >= 2) || (sDuring['Головокружение'] >= 2))
+    tips.push({ icon: '🟡', text: 'Была тошнота/головокружение во время сеанса', color: '#f39c12' });
+
+  if ((sAfter['Долгое восстановление'] >= 2) || (sAfter['Долгое восстановление после'] >= 2))
+    tips.push({ icon: '⏱', text: 'Долгое восстановление — добавь 30 мин к следующему сеансу', color: '#e67e22' });
+
+  if (sAfter['Слабость после'] >= 2)
+    tips.push({ icon: '🩸', text: 'Слабость после — проверь Hb и альбумин на следующих анализах', color: '#f39c12' });
+
+  return tips;
+}

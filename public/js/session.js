@@ -99,6 +99,28 @@ function renderSessionResult(res, container) {
       `K: ${d.k}  |  Na: ${d.na}  |  Ca: ${d.ca}  |  HCO₃: ${d.hco3}  |  Темп: ${d.temp}°C`, '#1a73e8'));
   }
 
+  // Рекомендации для следующего сеанса
+  if (res.nextRecommendations?.length) {
+    const recDiv = document.createElement('div');
+    recDiv.style.cssText = 'margin-top:12px; border-top:2px solid #e0e0e0; padding-top:10px';
+
+    const recTitle = document.createElement('div');
+    recTitle.className = 'result-line bold';
+    recTitle.style.cssText = 'color:#1a73e8; font-size:14px; margin-bottom:6px';
+    recTitle.textContent = '📋 Рекомендации для следующего сеанса:';
+    recDiv.appendChild(recTitle);
+
+    res.nextRecommendations.forEach(tip => {
+      const el = document.createElement('div');
+      el.className = 'result-line';
+      el.style.cssText = `color:${tip.color}; padding:4px 0; border-left:3px solid ${tip.color}; padding-left:8px; margin:4px 0`;
+      el.textContent = `${tip.icon} ${tip.text}`;
+      recDiv.appendChild(el);
+    });
+
+    container.appendChild(recDiv);
+  }
+
   // Кнопка перейти на аппарат
   const btnMachine = document.createElement('button');
   btnMachine.className = 'btn btn-outline';
