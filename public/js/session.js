@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════ */
 
 // ── Собрать данные формы ──
-const SHIFT_TIMES = { '1': '07:30', '2': '11:30', '3': '15:30', '4': '19:30' };
+const SHIFT_TIMES = { '1': '06:00', '2': '10:30', '3': '15:00' };
 
 function getSessionFormData() {
   const shift = document.getElementById('sessionShift')?.value || '3';
