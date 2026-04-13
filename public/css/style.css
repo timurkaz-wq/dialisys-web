@@ -69,20 +69,28 @@ body {
 .header-left  { display: flex; align-items: center; gap: 12px; }
 
 .header-logo {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
-  border: 2px solid rgba(26,140,255,0.5);
-  box-shadow: 0 0 12px rgba(26,140,255,0.3), inset 0 0 8px rgba(0,0,0,0.3);
-  background: #091524;
+  /* тонкий stroke — как в Odigo, без квадратного свечения */
+  border: 1.5px solid rgba(80, 160, 255, 0.55);
+  background: transparent;
 }
 
-.header-logo img { width: 36px; height: 36px; border-radius: 50%; display: block; }
+.header-logo img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: block;
+  object-fit: cover;
+  /* логотип вписывается в тёмный фон без квадратного обрамления */
+  mix-blend-mode: lighten;
+}
 
 .header-brand   { display: flex; flex-direction: column; gap: 1px; }
 
