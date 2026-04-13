@@ -88,10 +88,15 @@ function initTabs() {
 //  Инициализация
 // ══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
-  // Дата в заголовке
-  const now = new Date();
-  document.getElementById('headerDate').textContent =
-    now.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
+  // Дата и время в заголовке (обновляется каждую минуту)
+  function updateHeaderDateTime() {
+    const now = new Date();
+    const date = now.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
+    const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('headerDate').innerHTML = `${date}<br>${time}`;
+  }
+  updateHeaderDateTime();
+  setInterval(updateHeaderDateTime, 60000);
 
   // Дата сеанса — сегодня
   const sessionDateEl = document.getElementById('sessionDate');

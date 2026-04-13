@@ -47,9 +47,9 @@ body {
 }
 .header-left { display: flex; align-items: center; gap: 10px; }
 .header-icon { font-size: 24px; }
-.header-title { font-size: 16px; font-weight: 700; line-height: 1.2; }
-.header-sub   { font-size: 11px; opacity: 0.85; }
-.header-date  { font-size: 12px; opacity: 0.9; }
+.header-title { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.header-sub   { font-size: 13px; font-weight: 600; opacity: 0.95; }
+.header-date  { font-size: 13px; opacity: 0.95; text-align: right; line-height: 1.4; }
 
 /* ══ НАВИГАЦИЯ ══ */
 .tab-nav {

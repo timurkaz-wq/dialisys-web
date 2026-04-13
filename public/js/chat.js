@@ -16,6 +16,32 @@ async function loadChatHistory() {
   } catch { /* нет истории — ок */ }
 }
 
+// ── Markdown → HTML (простой рендер без библиотек) ──
+function markdownToHtml(text) {
+  return text
+    // Заголовки ### ## #
+    .replace(/^###\s+(.+)$/gm, '<b>$1</b>')
+    .replace(/^##\s+(.+)$/gm, '<b>$1</b>')
+    .replace(/^#\s+(.+)$/gm, '<b>$1</b>')
+    // Жирный **текст** и __текст__
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/__(.+?)__/g, '<b>$1</b>')
+    // Курсив *текст* и _текст_
+    .replace(/\*(.+?)\*/g, '<i>$1</i>')
+    .replace(/_(.+?)_/g, '<i>$1</i>')
+    // Код `inline`
+    .replace(/`([^`]+)`/g, '<code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
+    // Маркированный список
+    .replace(/^[-•]\s+(.+)$/gm, '• $1')
+    // Нумерованный список
+    .replace(/^\d+\.\s+(.+)$/gm, '→ $1')
+    // Горизонтальная линия
+    .replace(/^---+$/gm, '──────────')
+    // Переносы строк
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
 // ── Добавить сообщение в DOM ──
 function appendChatMessage(role, content, isTyping = false) {
   const container = document.getElementById('chatMessages');
@@ -24,7 +50,13 @@ function appendChatMessage(role, content, isTyping = false) {
 
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble';
-  bubble.textContent = content;
+
+  if (role === 'assistant' && !isTyping) {
+    bubble.innerHTML = markdownToHtml(content);
+  } else {
+    bubble.textContent = content;
+  }
+
   msgDiv.appendChild(bubble);
   container.appendChild(msgDiv);
   return msgDiv;
