@@ -171,11 +171,26 @@ function renderMachineSettings(res) {
   const infoDiv = document.createElement('div');
   infoDiv.className = 'card info-card';
   infoDiv.style.marginTop = '10px';
+
+  const MONTHS_RU = ['','Январь','Февраль','Март','Апрель','Май','Июнь',
+                     'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const ana = window.latestAnalysis;
+  let anaInfo = 'анализы не введены';
+  if (ana) {
+    const [y, m] = ana.month_key.split('-');
+    const monthName = `${MONTHS_RU[parseInt(m)]} ${y}`;
+    const parts = [];
+    if (ana.k)    parts.push(`K=${ana.k}`);
+    if (ana.na)   parts.push(`Na=${ana.na}`);
+    if (ana.ca)   parts.push(`Ca=${ana.ca}`);
+    if (ana.hco3) parts.push(`HCO₃=${ana.hco3}`);
+    anaInfo = `${monthName}${parts.length ? ': ' + parts.join(', ') : ''}`;
+  }
+
   infoDiv.innerHTML = `
     <div class="info-text">
-      Настройки рассчитаны по формулам Excel и последним анализам
-      ${window.latestAnalysis ? `(${window.latestAnalysis.month_key})` : ''}.
-      Перед процедурой уточните у медперсонала.
+      📋 Анализы: <b>${anaInfo}</b><br>
+      Настройки рассчитаны автоматически. Перед процедурой уточните у медперсонала.
     </div>
   `;
   container.appendChild(infoDiv);
