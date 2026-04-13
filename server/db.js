@@ -132,6 +132,10 @@ async function initDB() {
     )
   `);
 
+  // Миграции — добавляем новые колонки если их нет (безопасно)
+  await query(`ALTER TABLE procedures ADD COLUMN IF NOT EXISTS shift VARCHAR(20) DEFAULT '3'`);
+  await query(`ALTER TABLE procedures ADD COLUMN IF NOT EXISTS shift_time TIME`);
+
   // Индексы для быстрых запросов
   await query(`CREATE INDEX IF NOT EXISTS idx_procedures_date    ON procedures(date DESC)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_food_logs_date     ON food_logs(date DESC)`);

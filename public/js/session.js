@@ -3,9 +3,14 @@
    ══════════════════════════════════════════════ */
 
 // ── Собрать данные формы ──
+const SHIFT_TIMES = { '1': '07:30', '2': '11:30', '3': '15:30', '4': '19:30' };
+
 function getSessionFormData() {
+  const shift = document.getElementById('sessionShift')?.value || '3';
   return {
     date:           document.getElementById('sessionDate').value || todayStr(),
+    shift,
+    shift_time:     SHIFT_TIMES[shift],
     current_weight: document.getElementById('currentWeight').value,
     dry_weight:     document.getElementById('dryWeight').value,
     actual_time:    document.getElementById('actualTime').value,

@@ -62,6 +62,7 @@ router.post('/', async (req, res) => {
   try {
     const {
       date,
+      shift, shift_time,
       current_weight, dry_weight, target_weight,
       actual_time,
       bp_before, bp_during, bp_after,
@@ -113,7 +114,7 @@ router.post('/', async (req, res) => {
 
     const { rows } = await query(`
       INSERT INTO procedures (
-        date, weekday,
+        date, weekday, shift, shift_time,
         current_weight, dry_weight, target_weight,
         fluid_ml, uf_ml_h, uf_mlkg_h,
         recommended_time, actual_time,
@@ -127,11 +128,13 @@ router.post('/', async (req, res) => {
       ) VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
         $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
-        $23,$24,$25,$26,$27,$28,$29,$30,$31,$32
+        $23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34
       ) RETURNING *
     `, [
       date || new Date().toISOString().slice(0,10),
       weekday,
+      shift || '3',
+      shift_time || '15:30',
       cw, dw, calc.safeFloat(target_weight) || dw,
       machineSettings.fluidMl,
       parseFloat(ufMlH.toFixed(1)),

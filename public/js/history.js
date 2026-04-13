@@ -28,6 +28,7 @@ async function loadHistory() {
         <div class="history-header">
           <div>
             <div class="history-date">${formatDate(p.date)} — ${p.weekday || ''}</div>
+            ${p.shift ? `<div style="font-size:11px;color:#5f6368">${p.shift}-я смена · ${p.shift_time || ''}</div>` : ''}
           </div>
           <div class="history-status" style="color:${p.final_color || '#5f6368'}">
             ${p.final_status || '—'}

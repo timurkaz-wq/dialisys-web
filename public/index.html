@@ -67,10 +67,24 @@
   <div class="tab-content active" id="tab-session">
     <div class="section-title">Параметры сеанса</div>
 
-    <!-- Дата -->
+    <!-- Дата и смена -->
     <div class="card">
-      <div class="card-label">📅 Дата сеанса</div>
-      <input type="date" id="sessionDate" class="input-field"/>
+      <div class="card-label">📅 Дата и смена</div>
+      <div class="input-row">
+        <div class="input-group" style="flex:2">
+          <label>Дата сеанса</label>
+          <input type="date" id="sessionDate" class="input-field"/>
+        </div>
+        <div class="input-group" style="flex:2">
+          <label>Смена</label>
+          <select id="sessionShift" class="input-field">
+            <option value="1">1-я смена (07:30)</option>
+            <option value="2">2-я смена (11:30)</option>
+            <option value="3" selected>3-я смена (15:30)</option>
+            <option value="4">4-я смена (19:30)</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- Вес -->
