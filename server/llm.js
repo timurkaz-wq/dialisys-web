@@ -56,7 +56,8 @@ async function chat({ messages, model, temperature = 0.5, maxTokens = 2000 }) {
   if (content) {
     content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
   }
-  return content;
+  const tokens = data.usage || null;
+  return { content, tokens };
 }
 
 async function tryFallback(messages, temperature, maxTokens) {
@@ -64,7 +65,7 @@ async function tryFallback(messages, temperature, maxTokens) {
     return await chat({ messages, model: cfg.MODEL_FALLBACK, temperature, maxTokens });
   } catch (e) {
     console.error('[LLM] Fallback тоже недоступен:', e.message);
-    return null;
+    return { content: null, tokens: null };
   }
 }
 
@@ -72,14 +73,16 @@ async function tryFallback(messages, temperature, maxTokens) {
 //  Быстрый вызов для анализа питания (дешёвая модель)
 // ══════════════════════════════════════════════
 async function chatFood(messages) {
-  return chat({ messages, model: cfg.MODEL_FOOD, temperature: 0.3, maxTokens: 1500 });
+  const res = await chat({ messages, model: cfg.MODEL_FOOD, temperature: 0.3, maxTokens: 1500 });
+  return res?.content ?? null; // food route ожидает строку
 }
 
 // ══════════════════════════════════════════════
 //  Вызов для медицинского чата (мощная модель OpenRouter)
 // ══════════════════════════════════════════════
 async function chatMedical(messages) {
-  return chat({ messages, model: cfg.MODEL_CHAT, temperature: 0.5, maxTokens: 2000 });
+  const res = await chat({ messages, model: cfg.MODEL_CHAT, temperature: 0.5, maxTokens: 2000 });
+  return { content: res?.content ?? null, model: 'Qwen3 235B', tokens: res?.tokens ?? null };
 }
 
 // ══════════════════════════════════════════════
@@ -121,7 +124,8 @@ async function chatMedGemma(messages) {
     if (content) {
       content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
     }
-    return { content, model: 'MedGemma 4B' };
+    const tokens = data.usage || null;
+    return { content, model: 'MedGemma 4B', tokens };
 
   } catch (err) {
     console.error('[MedGemma] Сетевая ошибка:', err.message);

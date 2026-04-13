@@ -345,7 +345,16 @@
   <div class="tab-content" id="tab-chat">
     <div class="section-title">ИИ-Нефролог</div>
     <div class="card info-card">
-      <div class="info-text">🤖 Ассистент на основе <b>Qwen3-235B</b>. Консультирует по вопросам гемодиализа, питания и анализов. Не заменяет врача.</div>
+      <div class="info-text">🤖 Ассистент на основе <b>MedGemma 4B</b>. Консультирует по вопросам гемодиализа, питания и анализов. Не заменяет врача.</div>
+    </div>
+
+    <!-- Счётчик токенов -->
+    <div id="tokenCounter" class="token-counter">
+      <span id="tokenTotal">— токенов</span>
+      <span class="token-sep">·</span>
+      <span id="tokenCost">— $</span>
+      <span class="token-sep">·</span>
+      <span id="tokenModel">—</span>
     </div>
 
     <div class="chat-messages" id="chatMessages">

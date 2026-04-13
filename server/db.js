@@ -132,6 +132,19 @@ async function initDB() {
     )
   `);
 
+  // Таблица учёта токенов
+  await query(`
+    CREATE TABLE IF NOT EXISTS token_usage (
+      id             SERIAL PRIMARY KEY,
+      model          VARCHAR(50)  NOT NULL,
+      prompt_tokens  INTEGER      DEFAULT 0,
+      completion_tokens INTEGER   DEFAULT 0,
+      total_tokens   INTEGER      DEFAULT 0,
+      cost_usd       DECIMAL(10,6) DEFAULT 0,
+      created_at     TIMESTAMP    DEFAULT NOW()
+    )
+  `);
+
   // Миграции — добавляем новые колонки если их нет (безопасно)
   await query(`ALTER TABLE procedures ADD COLUMN IF NOT EXISTS shift VARCHAR(20) DEFAULT '3'`);
   await query(`ALTER TABLE procedures ADD COLUMN IF NOT EXISTS shift_time TIME`);

@@ -92,9 +92,49 @@ router.post('/', async (req, res) => {
       ['assistant', aiText]
     );
 
+    // Сохранить статистику токенов
+    if (result?.tokens) {
+      const t = result.tokens;
+      // Примерная цена: MedGemma ~$2/1M, Qwen3 235B ~$3/1M токенов
+      const pricePerM = aiModel === 'MedGemma 4B' ? 2.0 : 3.0;
+      const costUsd   = ((t.total_tokens || 0) / 1_000_000) * pricePerM;
+      await query(
+        `INSERT INTO token_usage (model, prompt_tokens, completion_tokens, total_tokens, cost_usd)
+         VALUES ($1,$2,$3,$4,$5)`,
+        [aiModel, t.prompt_tokens||0, t.completion_tokens||0, t.total_tokens||0, costUsd]
+      ).catch(() => {}); // не ломаем чат если статистика не сохранилась
+    }
+
     res.json({ response: aiText, model: aiModel });
   } catch (e) {
     console.error('[Chat]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/chat/tokens — статистика токенов
+router.get('/tokens', async (req, res) => {
+  try {
+    const { rows } = await query(`
+      SELECT
+        model,
+        COUNT(*)                        AS requests,
+        SUM(prompt_tokens)              AS prompt_tokens,
+        SUM(completion_tokens)          AS completion_tokens,
+        SUM(total_tokens)               AS total_tokens,
+        SUM(cost_usd)                   AS cost_usd
+      FROM token_usage
+      GROUP BY model
+      ORDER BY total_tokens DESC
+    `);
+    const totals = await query(`
+      SELECT
+        SUM(total_tokens) AS total_tokens,
+        SUM(cost_usd)     AS cost_usd
+      FROM token_usage
+    `);
+    res.json({ by_model: rows, totals: totals.rows[0] });
+  } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });

@@ -2,6 +2,24 @@
    chat.js — ИИ нефролог
    ══════════════════════════════════════════════ */
 
+// ── Загрузить и показать статистику токенов ──
+async function loadTokenStats() {
+  try {
+    const data = await apiFetch('/chat/tokens');
+    const total = parseInt(data.totals?.total_tokens || 0);
+    const cost  = parseFloat(data.totals?.cost_usd   || 0);
+
+    // Последняя использованная модель
+    const topModel = data.by_model?.[0]?.model || '—';
+
+    document.getElementById('tokenTotal').textContent =
+      total > 0 ? `${total.toLocaleString('ru-RU')} токенов` : '— токенов';
+    document.getElementById('tokenCost').textContent =
+      cost > 0 ? `≈ $${cost.toFixed(4)}` : '— $';
+    document.getElementById('tokenModel').textContent = topModel;
+  } catch { /* нет данных — ок */ }
+}
+
 // ── Загрузить историю чата ──
 async function loadChatHistory() {
   const container = document.getElementById('chatMessages');
@@ -105,6 +123,7 @@ async function sendChat() {
     typingDiv.remove();
     appendChatMessage('assistant', res.response, false, res.model);
     scrollChat();
+    loadTokenStats(); // обновить счётчик
   } catch (e) {
     typingDiv.remove();
     appendChatMessage('assistant', `❌ Ошибка: ${e.message}`);
@@ -149,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const input   = document.getElementById('chatInput');
 
   sendBtn?.addEventListener('click', sendChat);
+  loadTokenStats(); // загрузить при старте
 
   input?.addEventListener('keydown', (e) => {
     // Enter без Shift — отправить (Shift+Enter = новая строка)
