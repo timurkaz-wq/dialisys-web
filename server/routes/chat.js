@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════
 const { Router }       = require('express');
 const { query }        = require('../db');
-const { chatMedGemma }  = require('../llm');
+const { chatQwen, chatMedGemma } = require('../llm');
 const cfg              = require('../config');
 
 const router = Router();
@@ -49,7 +49,7 @@ router.get('/history', async (req, res) => {
 // POST /api/chat — отправить сообщение
 router.post('/', async (req, res) => {
   try {
-    const { message, include_context } = req.body;
+    const { message, include_context, llm_model } = req.body;
     if (!message?.trim()) return res.status(400).json({ error: 'Введите сообщение' });
 
     // Сохранить сообщение пользователя
@@ -76,8 +76,10 @@ router.post('/', async (req, res) => {
       ...conversationHistory,
     ];
 
-    // Запрос к MedGemma (с автофallback на Qwen если недоступна)
-    const result = await chatMedGemma(messages);
+    // Выбор модели: 'medgemma' или 'qwen' (по умолчанию qwen)
+    const result = llm_model === 'medgemma'
+      ? await chatMedGemma(messages)
+      : await chatQwen(messages);
     if (!result) throw new Error('LLM не ответил');
 
     const aiText  = result.content;

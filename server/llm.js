@@ -7,7 +7,45 @@ const DR7_URL        = 'https://dr7.ai/api/v1/medical/chat/completions';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // ══════════════════════════════════════════════
-//  MedGemma (DR7.ai) — основная медицинская модель
+//  Qwen3 (OpenRouter) — основная модель
+// ══════════════════════════════════════════════
+async function chatQwen(messages) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY не задан');
+
+  const response = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type':  'application/json',
+      'HTTP-Referer':  'https://dialisys.app',
+      'X-Title':       'Dialisys Assistant',
+    },
+    body: JSON.stringify({
+      model:       cfg.MODEL_CHAT,
+      messages,
+      max_tokens:  2000,
+      temperature: 0.5,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter ошибка ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+  let content = data.choices?.[0]?.message?.content || null;
+  if (content) {
+    content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim() || null;
+  }
+  const tokens = data.usage || null;
+  console.log(`[Qwen] ответил, токенов: ${tokens?.total_tokens ?? '?'}`);
+  return { content, model: 'Qwen3 235B', tokens };
+}
+
+// ══════════════════════════════════════════════
+//  MedGemma (DR7.ai) — на выбор пользователя
 // ══════════════════════════════════════════════
 async function chatMedGemma(messages) {
   const apiKey = process.env.DR7_API_KEY;
@@ -35,13 +73,12 @@ async function chatMedGemma(messages) {
   const data    = await response.json();
   const content = data.choices?.[0]?.message?.content?.trim() || null;
   const tokens  = data.usage || null;
-
   console.log(`[MedGemma] ответил, токенов: ${tokens?.total_tokens ?? '?'}`);
   return { content, model: 'MedGemma 4B', tokens };
 }
 
 // ══════════════════════════════════════════════
-//  OpenRouter — только для анализа питания
+//  OpenRouter — анализ питания
 // ══════════════════════════════════════════════
 async function chatFood(messages) {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -73,4 +110,4 @@ async function chatFood(messages) {
   return content;
 }
 
-module.exports = { chatMedGemma, chatFood };
+module.exports = { chatQwen, chatMedGemma, chatFood };

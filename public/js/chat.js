@@ -114,6 +114,7 @@ async function sendChat() {
   if (!message) return;
 
   const includeContext = document.getElementById('chatIncludeContext')?.checked;
+  const llmModel = document.querySelector('.model-btn.active')?.dataset.model || 'qwen';
   const sendBtn = document.getElementById('btnChatSend');
 
   // Добавить сообщение пользователя
@@ -129,7 +130,7 @@ async function sendChat() {
   try {
     const res = await apiFetch('/chat', {
       method: 'POST',
-      body:   JSON.stringify({ message, include_context: includeContext }),
+      body:   JSON.stringify({ message, include_context: includeContext, llm_model: llmModel }),
     });
 
     // Убрать "печатает" и добавить ответ с именем модели и токенами
@@ -187,7 +188,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const input   = document.getElementById('chatInput');
 
   sendBtn?.addEventListener('click', sendChat);
-  loadTokenStats(); // загрузить при старте
+  loadTokenStats();
+
+  // Переключатель модели
+  document.querySelectorAll('.model-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
 
   input?.addEventListener('keydown', (e) => {
     // Enter без Shift — отправить (Shift+Enter = новая строка)
