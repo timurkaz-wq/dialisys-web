@@ -67,9 +67,9 @@ module.exports = {
   DIALYSIS_DAYS: ['Вторник', 'Четверг', 'Суббота'],
 
   // ── OpenRouter модели ──
-  MODEL_FOOD:     process.env.MODEL_FOOD     || 'meta-llama/llama-3.1-8b-instruct:free',
-  MODEL_CHAT:     process.env.MODEL_CHAT     || 'meta-llama/llama-3.3-70b-instruct:free',
-  MODEL_FALLBACK: process.env.MODEL_FALLBACK || 'google/gemma-3-27b-it:free',
+  MODEL_FOOD:     process.env.MODEL_FOOD     || 'qwen/qwen3-30b-a3b:free',
+  MODEL_CHAT:     process.env.MODEL_CHAT     || 'qwen/qwen3-235b-a22b:free',
+  MODEL_FALLBACK: process.env.MODEL_FALLBACK || 'google/gemini-2.0-flash-exp:free',
 
   // ── DR7.ai — MedGemma (медицинский чат) ──
   MODEL_MEDGEMMA: process.env.MODEL_MEDGEMMA || 'medgemma-4b-it',

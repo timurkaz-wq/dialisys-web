@@ -20,7 +20,6 @@ async function chat({ messages, model, temperature = 0.5, maxTokens = 2000 }) {
     messages,
     temperature,
     max_tokens: maxTokens,
-    usage: true, // явно запрашиваем статистику токенов
   };
 
   let response;
@@ -87,7 +86,7 @@ async function chatFood(messages) {
 // ══════════════════════════════════════════════
 async function chatMedical(messages) {
   const res = await chat({ messages, model: cfg.MODEL_CHAT, temperature: 0.5, maxTokens: 2000 });
-  return { content: res?.content ?? null, model: 'Llama 3.3 70B', tokens: res?.tokens ?? null };
+  return { content: res?.content ?? null, model: 'Qwen3 235B', tokens: res?.tokens ?? null };
 }
 
 // ══════════════════════════════════════════════
