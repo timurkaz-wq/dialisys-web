@@ -800,37 +800,43 @@ select.input-field {
   margin-bottom: 8px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 8px;
 }
 
 /* ── Переключатель модели ── */
 .model-switcher {
   display: flex;
+  width: 100%;
   background: var(--bg2);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 2px;
-  gap: 2px;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 8px;
 }
 .model-btn {
-  padding: 4px 12px;
-  border-radius: 18px;
+  flex: 1;
+  padding: 7px 4px;
+  border-radius: 8px;
   border: none;
   background: transparent;
   color: var(--text3);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   font-family: 'Rajdhani', sans-serif;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 .model-btn.active {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 0 8px rgba(26,140,255,0.4);
+  box-shadow: 0 0 10px rgba(26,140,255,0.4);
+}
+.model-btn:not(.active):hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
 }
 
 .chat-input-row { display: flex; gap: 8px; align-items: flex-end; }

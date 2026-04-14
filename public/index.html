@@ -364,16 +364,17 @@
     </div>
 
     <div class="chat-input-area">
+      <!-- Переключатель модели — отдельная строка, на всю ширину -->
+      <div class="model-switcher">
+        <button class="model-btn active" data-model="qwen">⚡ Qwen3</button>
+        <button class="model-btn" data-model="thinking">🧠 Thinking</button>
+        <button class="model-btn" data-model="medgemma">🩺 MedGemma</button>
+      </div>
       <div class="chat-options">
         <label class="checkbox-label">
           <input type="checkbox" id="chatIncludeContext" checked/>
           Включить данные пациента
         </label>
-        <div class="model-switcher">
-          <button class="model-btn active" data-model="qwen">Qwen3</button>
-          <button class="model-btn" data-model="thinking">Thinking</button>
-          <button class="model-btn" data-model="medgemma">MedGemma</button>
-        </div>
       </div>
       <div class="chat-input-row">
         <textarea id="chatInput" class="chat-textarea" rows="2"
