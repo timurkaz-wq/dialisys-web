@@ -2,22 +2,25 @@
    chat.js — ИИ нефролог
    ══════════════════════════════════════════════ */
 
-// ── Загрузить и показать статистику токенов ──
+// ── Обновить счётчик токенов вверху ──
+function updateTokenCounter(totalTokens, costUsd, model) {
+  const el = document.getElementById('tokenCounter');
+  if (!el) return;
+  document.getElementById('tcTotal').textContent =
+    totalTokens > 0 ? `${totalTokens.toLocaleString('ru-RU')} токенов` : '0 токенов';
+  document.getElementById('tcCost').textContent =
+    costUsd > 0 ? `$${costUsd.toFixed(4)}` : '$0.00';
+  document.getElementById('tcModel').textContent = model || '—';
+}
+
+// ── Загрузить статистику при старте ──
 async function loadTokenStats() {
   try {
-    const data = await apiFetch('/chat/tokens');
+    const data  = await apiFetch('/chat/tokens');
     const total = parseInt(data.totals?.total_tokens || 0);
     const cost  = parseFloat(data.totals?.cost_usd   || 0);
-
-    // Последняя использованная модель
-    const topModel = data.by_model?.[0]?.model || '—';
-
-    document.getElementById('tokenTotal').textContent =
-      total > 0 ? `${total.toLocaleString('ru-RU')} ток.` : '0 токенов';
-    document.getElementById('tokenCost').textContent =
-      cost > 0 ? `≈ $${cost.toFixed(4)}` : '$0.00';
-    document.getElementById('tokenModel').textContent =
-      topModel !== '—' ? topModel : 'нет запросов';
+    const model = data.by_model?.[0]?.model || '—';
+    updateTokenCounter(total, cost, model);
   } catch { /* нет данных — ок */ }
 }
 
@@ -62,7 +65,7 @@ function markdownToHtml(text) {
 }
 
 // ── Добавить сообщение в DOM ──
-function appendChatMessage(role, content, isTyping = false, model = null, tokens = 0, totalTokens = 0) {
+function appendChatMessage(role, content, isTyping = false, model = null, tokens = 0) {
   const container = document.getElementById('chatMessages');
   const msgDiv = document.createElement('div');
   msgDiv.className = `chat-msg ${role}${isTyping ? ' typing' : ''}`;
@@ -78,18 +81,21 @@ function appendChatMessage(role, content, isTyping = false, model = null, tokens
 
   msgDiv.appendChild(bubble);
 
-  // Строка статистики под ответом ассистента
+  // Два бейджа под ответом ассистента
   if (role === 'assistant' && !isTyping && model) {
-    const info = document.createElement('div');
-    info.className = 'chat-info-line';
+    // 1. Название модели
+    const modelBadge = document.createElement('div');
+    modelBadge.className = 'chat-model-badge badge-model';
+    modelBadge.textContent = model;
+    msgDiv.appendChild(modelBadge);
 
-    const parts = [];
-    parts.push(`<span class="ci-model">${model}</span>`);
-    if (tokens)      parts.push(`<span class="ci-tokens">${tokens.toLocaleString('ru-RU')} ток.</span>`);
-    if (totalTokens) parts.push(`<span class="ci-total">всего: ${totalTokens.toLocaleString('ru-RU')}</span>`);
-
-    info.innerHTML = parts.join('<span class="ci-sep"> · </span>');
-    msgDiv.appendChild(info);
+    // 2. Токены этого запроса
+    if (tokens > 0) {
+      const tokenBadge = document.createElement('div');
+      tokenBadge.className = 'chat-model-badge badge-tokens';
+      tokenBadge.textContent = `${tokens.toLocaleString('ru-RU')} токенов`;
+      msgDiv.appendChild(tokenBadge);
+    }
   }
 
   container.appendChild(msgDiv);
@@ -128,8 +134,15 @@ async function sendChat() {
 
     // Убрать "печатает" и добавить ответ с именем модели и токенами
     typingDiv.remove();
-    appendChatMessage('assistant', res.response, false, res.model, res.tokens || 0, res.totalTokens || 0);
+    appendChatMessage('assistant', res.response, false, res.model, res.tokens || 0);
     scrollChat();
+
+    // Обновить счётчик вверху
+    if (res.totalTokens) {
+      const pricePerM = 2.0;
+      const cost = (res.totalTokens / 1_000_000) * pricePerM;
+      updateTokenCounter(res.totalTokens, cost, res.model);
+    }
   } catch (e) {
     typingDiv.remove();
     appendChatMessage('assistant', `❌ Ошибка: ${e.message}`);

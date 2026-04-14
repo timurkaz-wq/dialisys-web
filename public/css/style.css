@@ -750,20 +750,37 @@ select.input-field {
 
 .chat-msg.typing .chat-bubble { color: var(--text3); font-style: italic; }
 
-/* ── Строка статистики под ответом ── */
-.chat-info-line {
+/* ── Бейджи под ответом ── */
+.chat-model-badge {
   font-size: 10px;
-  margin-top: 5px;
+  margin-top: 3px;
   padding-left: 2px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.chat-model-badge.badge-model  { color: var(--accent2); }
+.chat-model-badge.badge-tokens { color: var(--gold); }
+
+/* ── Счётчик токенов вверху ── */
+.token-counter {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(26,140,255,0.06);
+  border: 1px solid rgba(26,140,255,0.15);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--text3);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
-.ci-model  { color: var(--accent2); font-weight: 600; letter-spacing: 0.3px; }
-.ci-tokens { color: var(--gold); }
-.ci-total  { color: var(--text3); }
-.ci-sep    { color: var(--text3); opacity: 0.4; }
+.token-counter .tc-sep   { opacity: 0.35; }
+.token-counter .tc-total { color: var(--accent2); }
+.token-counter .tc-cost  { color: var(--gold); }
+.token-counter .tc-model { color: var(--text2); }
 
 .chat-input-area {
   position: sticky;
