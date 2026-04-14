@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════
 const { Router }       = require('express');
 const { query }        = require('../db');
-const { chatMedGemma } = require('../llm');
+const { chatMedGemma }  = require('../llm');
 const cfg              = require('../config');
 
 const router = Router();
@@ -80,9 +80,8 @@ router.post('/', async (req, res) => {
     const result = await chatMedGemma(messages);
     if (!result) throw new Error('LLM не ответил');
 
-    // result может быть строкой (fallback) или объектом { content, model }
-    const aiText  = typeof result === 'string' ? result : result.content;
-    const aiModel = typeof result === 'string' ? 'Qwen3 235B' : (result.model || 'MedGemma 4B');
+    const aiText  = result.content;
+    const aiModel = result.model || 'MedGemma 4B';
 
     if (!aiText) throw new Error('LLM не ответил');
 
