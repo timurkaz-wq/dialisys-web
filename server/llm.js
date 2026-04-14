@@ -55,7 +55,11 @@ async function chat({ messages, model, temperature = 0.5, maxTokens = 2000 }) {
   let content = data.choices?.[0]?.message?.content || null;
   // Убираем блок <think>...</think> из Qwen3 моделей (extended thinking)
   if (content) {
-    content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim() || null;
+  }
+  // Если после вырезания think-блоков контент пустой — логируем
+  if (!content) {
+    console.warn(`[LLM] ${usedModel} вернул пустой контент`);
   }
   const tokens = data.usage || null;
   return { content, tokens };
@@ -83,7 +87,7 @@ async function chatFood(messages) {
 // ══════════════════════════════════════════════
 async function chatMedical(messages) {
   const res = await chat({ messages, model: cfg.MODEL_CHAT, temperature: 0.5, maxTokens: 2000 });
-  return { content: res?.content ?? null, model: 'Qwen3 235B', tokens: res?.tokens ?? null };
+  return { content: res?.content ?? null, model: 'Llama 3.3 70B', tokens: res?.tokens ?? null };
 }
 
 // ══════════════════════════════════════════════
@@ -123,7 +127,7 @@ async function chatMedGemma(messages) {
     const data = await response.json();
     let content = data.choices?.[0]?.message?.content || null;
     if (content) {
-      content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim() || null;
     }
     const tokens = data.usage || null;
     return { content, model: 'MedGemma 4B', tokens };

@@ -82,7 +82,7 @@ router.post('/', async (req, res) => {
 
     // result может быть строкой (fallback) или объектом { content, model }
     const aiText  = typeof result === 'string' ? result : result.content;
-    const aiModel = typeof result === 'string' ? 'Qwen3 235B' : (result.model || 'MedGemma 4B');
+    const aiModel = typeof result === 'string' ? 'Llama 3.3 70B' : (result.model || 'MedGemma 4B');
 
     if (!aiText) throw new Error('LLM не ответил');
 
