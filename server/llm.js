@@ -20,6 +20,7 @@ async function chat({ messages, model, temperature = 0.5, maxTokens = 2000 }) {
     messages,
     temperature,
     max_tokens: maxTokens,
+    usage: true, // явно запрашиваем статистику токенов
   };
 
   let response;
