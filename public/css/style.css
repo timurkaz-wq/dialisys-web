@@ -750,34 +750,20 @@ select.input-field {
 
 .chat-msg.typing .chat-bubble { color: var(--text3); font-style: italic; }
 
-.chat-model-badge {
+/* ── Строка статистики под ответом ── */
+.chat-info-line {
   font-size: 10px;
-  color: var(--text3);
-  letter-spacing: 0.5px;
-  margin-top: 4px;
-  padding-left: 4px;
-  opacity: 0.7;
-}
-
-/* ── Счётчик токенов ── */
-.token-counter {
+  margin-top: 5px;
+  padding-left: 2px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(26,140,255,0.06);
-  border: 1px solid rgba(26,140,255,0.15);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  font-size: 11px;
-  color: var(--text3);
-  font-family: 'Rajdhani', sans-serif;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  flex-wrap: wrap;
+  gap: 0;
 }
-.token-sep { opacity: 0.4; }
-#tokenTotal { color: var(--accent2); }
-#tokenCost  { color: var(--gold); }
+.ci-model  { color: var(--accent2); font-weight: 600; letter-spacing: 0.3px; }
+.ci-tokens { color: var(--gold); }
+.ci-total  { color: var(--text3); }
+.ci-sep    { color: var(--text3); opacity: 0.4; }
 
 .chat-input-area {
   position: sticky;

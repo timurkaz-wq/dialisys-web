@@ -93,23 +93,26 @@ router.post('/', async (req, res) => {
 
     // Сохранить статистику токенов
     const t = result?.tokens;
-    let savedTokens = 0;
+    let thisTokens = 0;
     if (t?.total_tokens) {
-      // Примерная цена: MedGemma ~$2/1M, Qwen3 235B ~$3/1M токенов
-      const pricePerM = aiModel === 'MedGemma 4B' ? 2.0 : 3.0;
+      const pricePerM = 2.0; // MedGemma $2/1M токенов
       const costUsd   = (t.total_tokens / 1_000_000) * pricePerM;
-      savedTokens = t.total_tokens;
+      thisTokens = t.total_tokens;
       await query(
         `INSERT INTO token_usage (model, prompt_tokens, completion_tokens, total_tokens, cost_usd)
          VALUES ($1,$2,$3,$4,$5)`,
         [aiModel, t.prompt_tokens||0, t.completion_tokens||0, t.total_tokens, costUsd]
       ).catch(err => console.error('[Tokens] Ошибка сохранения:', err.message));
-      console.log(`[Chat] ${aiModel} → ${t.total_tokens} токенов (${t.prompt_tokens}+${t.completion_tokens})`);
-    } else {
-      console.log(`[Chat] ${aiModel} ответил, токены не вернул`);
+      console.log(`[Chat] ${aiModel} → ${t.total_tokens} токенов`);
     }
 
-    res.json({ response: aiText, model: aiModel, tokens: savedTokens });
+    // Получить накопленный итог
+    const { rows: totRows } = await query(
+      'SELECT COALESCE(SUM(total_tokens),0) AS total FROM token_usage'
+    );
+    const totalTokens = parseInt(totRows[0]?.total || 0);
+
+    res.json({ response: aiText, model: aiModel, tokens: thisTokens, totalTokens });
   } catch (e) {
     console.error('[Chat]', e.message);
     res.status(500).json({ error: e.message });

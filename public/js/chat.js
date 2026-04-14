@@ -62,7 +62,7 @@ function markdownToHtml(text) {
 }
 
 // ── Добавить сообщение в DOM ──
-function appendChatMessage(role, content, isTyping = false, model = null, tokens = 0) {
+function appendChatMessage(role, content, isTyping = false, model = null, tokens = 0, totalTokens = 0) {
   const container = document.getElementById('chatMessages');
   const msgDiv = document.createElement('div');
   msgDiv.className = `chat-msg ${role}${isTyping ? ' typing' : ''}`;
@@ -78,20 +78,18 @@ function appendChatMessage(role, content, isTyping = false, model = null, tokens
 
   msgDiv.appendChild(bubble);
 
-  // Бейджик с именем модели под ответом ассистента
+  // Строка статистики под ответом ассистента
   if (role === 'assistant' && !isTyping && model) {
-    const badge = document.createElement('div');
-    badge.className = 'chat-model-badge';
-    badge.textContent = model;
-    msgDiv.appendChild(badge);
-  }
-  // Бейджик с токенами текущего запроса
-  if (role === 'assistant' && !isTyping && tokens) {
-    const tkBadge = document.createElement('div');
-    tkBadge.className = 'chat-model-badge';
-    tkBadge.style.color = 'var(--gold)';
-    tkBadge.textContent = `${tokens.toLocaleString('ru-RU')} токенов`;
-    msgDiv.appendChild(tkBadge);
+    const info = document.createElement('div');
+    info.className = 'chat-info-line';
+
+    const parts = [];
+    parts.push(`<span class="ci-model">${model}</span>`);
+    if (tokens)      parts.push(`<span class="ci-tokens">${tokens.toLocaleString('ru-RU')} ток.</span>`);
+    if (totalTokens) parts.push(`<span class="ci-total">всего: ${totalTokens.toLocaleString('ru-RU')}</span>`);
+
+    info.innerHTML = parts.join('<span class="ci-sep"> · </span>');
+    msgDiv.appendChild(info);
   }
 
   container.appendChild(msgDiv);
@@ -130,9 +128,8 @@ async function sendChat() {
 
     // Убрать "печатает" и добавить ответ с именем модели и токенами
     typingDiv.remove();
-    appendChatMessage('assistant', res.response, false, res.model, res.tokens || 0);
+    appendChatMessage('assistant', res.response, false, res.model, res.tokens || 0, res.totalTokens || 0);
     scrollChat();
-    loadTokenStats(); // обновить накопленный счётчик
   } catch (e) {
     typingDiv.remove();
     appendChatMessage('assistant', `❌ Ошибка: ${e.message}`);
