@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════
 const { Router }       = require('express');
 const { query }        = require('../db');
-const { chatQwen, chatMedGemma } = require('../llm');
+const { chatQwen, chatQwenThinking, chatMedGemma } = require('../llm');
 const cfg              = require('../config');
 
 const router = Router();
@@ -76,10 +76,11 @@ router.post('/', async (req, res) => {
       ...conversationHistory,
     ];
 
-    // Выбор модели: 'medgemma' или 'qwen' (по умолчанию qwen)
-    const result = llm_model === 'medgemma'
-      ? await chatMedGemma(messages)
-      : await chatQwen(messages);
+    // Выбор модели
+    let result;
+    if      (llm_model === 'medgemma') result = await chatMedGemma(messages);
+    else if (llm_model === 'thinking') result = await chatQwenThinking(messages);
+    else                               result = await chatQwen(messages);
     if (!result) throw new Error('LLM не ответил');
 
     const aiText  = result.content;

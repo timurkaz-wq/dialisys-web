@@ -7,9 +7,9 @@ const DR7_URL        = 'https://dr7.ai/api/v1/medical/chat/completions';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // ══════════════════════════════════════════════
-//  Qwen3 (OpenRouter) — основная модель
+//  Универсальный вызов OpenRouter
 // ══════════════════════════════════════════════
-async function chatQwen(messages) {
+async function _openrouter(model, messages, { maxTokens = 2000, temperature = 0.5 } = {}) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('OPENROUTER_API_KEY не задан');
 
@@ -21,12 +21,7 @@ async function chatQwen(messages) {
       'HTTP-Referer':  'https://dialisys.app',
       'X-Title':       'Dialisys Assistant',
     },
-    body: JSON.stringify({
-      model:       cfg.MODEL_CHAT,
-      messages,
-      max_tokens:  2000,
-      temperature: 0.5,
-    }),
+    body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature }),
   });
 
   if (!response.ok) {
@@ -35,13 +30,40 @@ async function chatQwen(messages) {
   }
 
   const data = await response.json();
-  let content = data.choices?.[0]?.message?.content || null;
+  const msg  = data.choices?.[0]?.message;
+
+  // Thinking-модели: финальный ответ в content, мышление в reasoning — берём только content
+  // Instruct-модели: иногда оборачивают в <think> теги — вырезаем
+  let content = msg?.content || null;
   if (content) {
     content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim() || null;
   }
+  // Если content пуст, но есть reasoning — значит модель вернула только мышление (fallback)
+  if (!content && msg?.reasoning) {
+    content = msg.reasoning.trim() || null;
+  }
+
   const tokens = data.usage || null;
-  console.log(`[Qwen] ответил, токенов: ${tokens?.total_tokens ?? '?'}`);
+  return { content, tokens };
+}
+
+// ══════════════════════════════════════════════
+//  Qwen3 Instruct — быстрый, основная модель
+// ══════════════════════════════════════════════
+async function chatQwen(messages) {
+  const { content, tokens } = await _openrouter(cfg.MODEL_CHAT, messages);
+  console.log(`[Qwen Instruct] токенов: ${tokens?.total_tokens ?? '?'}`);
   return { content, model: 'Qwen3 235B', tokens };
+}
+
+// ══════════════════════════════════════════════
+//  Qwen3 Thinking — глубокое мышление
+// ══════════════════════════════════════════════
+async function chatQwenThinking(messages) {
+  // Thinking-модели требуют больше токенов (мышление + ответ)
+  const { content, tokens } = await _openrouter(cfg.MODEL_THINKING, messages, { maxTokens: 8000, temperature: 0.6 });
+  console.log(`[Qwen Thinking] токенов: ${tokens?.total_tokens ?? '?'}`);
+  return { content, model: 'Qwen3 Thinking', tokens };
 }
 
 // ══════════════════════════════════════════════
@@ -110,4 +132,4 @@ async function chatFood(messages) {
   return content;
 }
 
-module.exports = { chatQwen, chatMedGemma, chatFood };
+module.exports = { chatQwen, chatQwenThinking, chatMedGemma, chatFood };

@@ -69,6 +69,7 @@ module.exports = {
   // ── OpenRouter модели ──
   MODEL_FOOD:     process.env.MODEL_FOOD     || 'qwen/qwen3-30b-a3b:free',
   MODEL_CHAT:     process.env.MODEL_CHAT     || 'qwen/qwen3-235b-a22b:free',
+  MODEL_THINKING: process.env.MODEL_THINKING || 'qwen/qwen3-235b-a22b-thinking-2507',
   MODEL_FALLBACK: process.env.MODEL_FALLBACK || 'google/gemini-2.0-flash-exp:free',
 
   // ── DR7.ai — MedGemma (медицинский чат) ──
