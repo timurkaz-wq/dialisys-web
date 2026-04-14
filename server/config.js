@@ -66,11 +66,11 @@ module.exports = {
   // ── Дни диализа ──
   DIALYSIS_DAYS: ['Вторник', 'Четверг', 'Суббота'],
 
-  // ── OpenRouter модели ──
-  MODEL_FOOD:     process.env.MODEL_FOOD     || 'qwen/qwen3-30b-a3b:free',
+  // ── OpenRouter модели (проверены через API openrouter.ai/api/v1/models) ──
+  MODEL_FOOD:     process.env.MODEL_FOOD     || 'qwen/qwen3-next-80b-a3b-instruct:free',
   MODEL_CHAT:     process.env.MODEL_CHAT     || 'qwen/qwen3-235b-a22b',
   MODEL_THINKING: process.env.MODEL_THINKING || 'qwen/qwen3-235b-a22b-thinking-2507',
-  MODEL_FALLBACK: process.env.MODEL_FALLBACK || 'google/gemini-2.0-flash-exp:free',
+  MODEL_FALLBACK: process.env.MODEL_FALLBACK || 'qwen/qwen3-next-80b-a3b-instruct:free',
 
   // ── DR7.ai — MedGemma (медицинский чат) ──
   MODEL_MEDGEMMA: process.env.MODEL_MEDGEMMA || 'medgemma-4b-it',
