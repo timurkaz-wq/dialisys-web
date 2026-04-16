@@ -2,7 +2,7 @@
    Service Worker — PWA кэширование
    ══════════════════════════════════════════════ */
 
-const CACHE_NAME = 'dialisys-v1';
+const CACHE_NAME = 'dialisys-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
