@@ -10,22 +10,32 @@
   <link rel="manifest" href="/manifest.json"/>
   <link rel="stylesheet" href="/css/style.css?v=4"/>
   <style>
-    /* Переключатель моделей — металлик, принудительный стиль */
-    .model-switcher {
-      background: linear-gradient(180deg, #c8cdd4 0%, #a8adb4 100%) !important;
-      border: 1px solid #888e96 !important;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3) !important;
-    }
-    .model-btn {
-      color: #1a1e24 !important;
-      background: transparent !important;
-      font-weight: 700 !important;
-    }
-    .model-btn.active {
-      background: linear-gradient(180deg, #e8ecf0 0%, #d0d5dc 100%) !important;
-      color: #0a0c10 !important;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.35) !important;
-    }
+    /* Принудительный сброс тёмной темы — светлый металлик */
+    body { background: linear-gradient(160deg,#d8dee6 0%,#e4e8ee 50%,#dde2e8 100%) !important; color: #1a1e24 !important; }
+    .app-header { background: linear-gradient(180deg,#c8cdd4 0%,#b0b8c2 100%) !important; }
+    .tab-nav    { background: linear-gradient(180deg,#c8cdd4 0%,#b8bec8 100%) !important; }
+    .card       { background: #f4f6f8 !important; border-color: #b8c0cc !important; }
+    .input-field, .textarea-field { background: #fff !important; color: #1a1e24 !important; border-color: #b8c0cc !important; }
+    .chat-textarea { background: #fff !important; color: #1a1e24 !important; }
+    .chat-msg.assistant .chat-bubble { background: #fff !important; color: #1a1e24 !important; }
+    .chat-input-area { background: #e4e8ee !important; }
+    .tab-btn { color: #5a6a7a !important; }
+    .tab-btn.active { color: #1a6ccc !important; }
+    .header-title, .header-patient { color: #1a1e24 !important; }
+    .header-sub { color: #3a6aaa !important; }
+    .section-title { color: #1a6ccc !important; }
+    .result-area { background: #f4f6f8 !important; border-color: #b8c0cc !important; }
+    .history-item { background: #f4f6f8 !important; border-color: #b8c0cc !important; }
+    .analysis-history-item { background: #f4f6f8 !important; border-color: #b8c0cc !important; }
+    .machine-item { background: #f4f6f8 !important; border-color: #b8c0cc !important; }
+    .machine-highlight { background: linear-gradient(135deg,#e0e6ee 0%,#cdd5e0 100%) !important; border-color: #9aa4b0 !important; }
+    .machine-highlight .machine-value { color: #1a3a6a !important; text-shadow: none !important; }
+    .machine-item .machine-value { color: #1a5aaa !important; text-shadow: none !important; }
+    .token-counter { background: rgba(26,108,204,0.08) !important; border-color: rgba(26,108,204,0.2) !important; }
+    .symptom-item { background: #e8ecf0 !important; border-color: #b8c0cc !important; color: #3a4a5a !important; }
+    .food-log-item { background: #f4f6f8 !important; border-color: #b8c0cc !important; }
+    .norm-item { background: #e8ecf0 !important; border-color: #b8c0cc !important; }
+    select.input-field option { background: #f4f6f8; color: #1a1e24; }
   </style>
 </head>
 <body>
