@@ -2,7 +2,7 @@
    Service Worker — PWA кэширование
    ══════════════════════════════════════════════ */
 
-const CACHE_NAME = 'dialisys-v3';
+const CACHE_NAME = 'dialisys-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -24,7 +24,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Активация — удаляем старый кэш
+// Активация — удаляем ВСЕ старые кэши
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -34,33 +34,34 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch — Network first для API, Cache first для статики
+// Fetch — Network first для всего (всегда свежие файлы)
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // API — всегда сеть
+  // API — только сеть
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request).catch(() =>
-      new Response(JSON.stringify({ error: 'Нет соединения' }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    ));
+    event.respondWith(
+      fetch(request).catch(() =>
+        new Response(JSON.stringify({ error: 'Нет соединения' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    );
     return;
   }
 
-  // Статика — кэш + обновление в фоне
+  // Статика — Network first: сначала сеть, при ошибке кэш
   event.respondWith(
-    caches.match(request).then(cached => {
-      const networkFetch = fetch(request).then(response => {
+    fetch(request)
+      .then(response => {
         if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
         }
         return response;
-      });
-      return cached || networkFetch;
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
