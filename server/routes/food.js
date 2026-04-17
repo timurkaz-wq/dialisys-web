@@ -5,6 +5,7 @@
 const { Router }       = require('express');
 const { query }        = require('../db');
 const { analyzeFoodText } = require('../food_analysis');
+const { chatQwen }     = require('../llm');
 const calc             = require('../calculations');
 const cfg              = require('../config');
 
@@ -50,6 +51,64 @@ router.get('/history', async (req, res) => {
     `, [days]);
     res.json(rows);
   } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/food/menu — AI генерирует меню на день для диализника
+router.get('/menu', async (req, res) => {
+  try {
+    // Текущие нутриенты за день (если уже что-то ели)
+    const date = new Date().toISOString().slice(0, 10);
+    const { rows: todayLogs } = await query(
+      'SELECT * FROM food_logs WHERE date = $1', [date]
+    );
+    const eaten = todayLogs.map(r => r.food_text).join('; ') || 'ничего';
+
+    const messages = [
+      {
+        role: 'system',
+        content: `Ты — диетолог, специализирующийся на питании пациентов на гемодиализе.
+Составь меню на один день (завтрак, обед, ужин и перекус) строго по нормам для диализника:
+• Калий (K): не более 2000 мг/сут
+• Фосфор (P): не более 800 мг/сут
+• Натрий (Na): не более 1500 мг/сут
+• Жидкость: не более 1000 мл/сут
+• Белок: 1.2 г/кг/сут (пациент ~75 кг → ~90 г)
+• Калорийность: 1800-2200 ккал/сут
+
+ПРАВИЛА:
+- Избегай сухофруктов, орехов, бобовых, молочных (высокий K/P)
+- Картофель только после 2-часового вымачивания
+- Используй простые доступные продукты
+- Порции реальные (не слишком маленькие)
+
+ФОРМАТ ОТВЕТА (строго JSON):
+{
+  "breakfast": {"name": "Завтрак", "dishes": [{"dish": "название блюда", "portion": "200г", "note": "подсказка"}]},
+  "lunch":     {"name": "Обед",    "dishes": [...]},
+  "dinner":    {"name": "Ужин",    "dishes": [...]},
+  "snack":     {"name": "Перекус", "dishes": [...]}
+}`,
+      },
+      {
+        role: 'user',
+        content: `Составь меню на сегодня. Сегодня уже съедено: ${eaten}. Учти это и дополни оставшиеми приёмами пищи.`,
+      },
+    ];
+
+    const result = await chatQwen(messages);
+    if (!result?.content) throw new Error('AI не ответил');
+
+    // Парсим JSON из ответа
+    const clean = result.content.replace(/```json|```/gi, '').trim();
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Неверный формат ответа AI');
+
+    const menu = JSON.parse(jsonMatch[0]);
+    res.json({ menu, date });
+  } catch (e) {
+    console.error('[Menu]', e.message);
     res.status(500).json({ error: e.message });
   }
 });

@@ -204,9 +204,69 @@ async function deleteFood(id) {
   }
 }
 
+// ── Меню дня от AI ──
+async function loadDailyMenu() {
+  const btn = document.getElementById('btnLoadMenu');
+  const resultEl = document.getElementById('menuResult');
+  if (!btn || !resultEl) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ AI думает...';
+  resultEl.innerHTML = '<div style="color:#888">🤖 Составляю меню под ваши нормы...</div>';
+
+  try {
+    const res = await apiFetch('/food/menu');
+    renderDailyMenu(res.menu, resultEl);
+  } catch (e) {
+    resultEl.innerHTML = `<div style="color:#e74c3c">❌ ${e.message}</div>`;
+    showToast('Ошибка загрузки меню', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄 Обновить меню';
+  }
+}
+
+function renderDailyMenu(menu, container) {
+  if (!menu) { container.innerHTML = '<div style="color:#e74c3c">Нет данных</div>'; return; }
+
+  const mealIcons = { breakfast:'🌅', lunch:'☀️', dinner:'🌙', snack:'🍎' };
+  const mealOrder = ['breakfast','lunch','snack','dinner'];
+
+  container.innerHTML = '';
+
+  mealOrder.forEach(key => {
+    const meal = menu[key];
+    if (!meal) return;
+
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #dde2e8';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:700; color:#1a6ccc; margin-bottom:4px';
+    title.textContent = `${mealIcons[key] || '🍽️'} ${meal.name}`;
+    section.appendChild(title);
+
+    (meal.dishes || []).forEach(d => {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:2px 0 2px 8px; color:#1a1e24; font-size:13px';
+      row.innerHTML = `• <b>${d.dish}</b> <span style="color:#888">${d.portion || ''}</span>${d.note ? ` <span style="color:#e67e22; font-size:12px">— ${d.note}</span>` : ''}`;
+      section.appendChild(row);
+    });
+
+    container.appendChild(section);
+  });
+
+  // Кнопка "Использовать в питании"
+  const hint = document.createElement('div');
+  hint.style.cssText = 'margin-top:6px; font-size:12px; color:#888';
+  hint.textContent = '💡 Чтобы записать приём пищи — опишите что съели в поле выше';
+  container.appendChild(hint);
+}
+
 // ── Привязка кнопок ──
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnAddFood')?.addEventListener('click', addFood);
+  document.getElementById('btnLoadMenu')?.addEventListener('click', loadDailyMenu);
 
   // Установить дату по умолчанию
   const foodDateEl = document.getElementById('foodDate');
