@@ -10,6 +10,11 @@ const router = Router();
 
 const WEEKDAYS = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
 
+// Конвертация в целое число или null (защита от пустой строки)
+const toInt = v => { const n = parseInt(v); return isNaN(n) ? null : n; };
+// Конвертация в float или null
+const toFloat = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+
 // GET /api/procedures — история (последние 90 записей)
 router.get('/', async (req, res) => {
   try {
@@ -142,8 +147,8 @@ router.post('/', async (req, res) => {
       parseFloat(ufMlkgH.toFixed(2)),
       machineSettings.recommendedTime,
       hoursUsed,
-      bp_before, bp_during, bp_after,
-      art_pressure, ven_pressure,
+      bp_before || null, bp_during || null, bp_after || null,
+      toInt(art_pressure), toInt(ven_pressure),
       machineSettings.qb, machineSettings.qd,
       machineSettings.dialysate.k,
       machineSettings.dialysate.na,
@@ -250,8 +255,8 @@ router.patch('/:id', async (req, res) => {
         notes=$19, status='complete'
       WHERE id=$20 RETURNING *
     `, [
-      bp_during, bp_after,
-      art_pressure, ven_pressure,
+      bp_during || null, bp_after || null,
+      toInt(art_pressure), toInt(ven_pressure),
       hoursUsed,
       JSON.stringify(symptoms_during || {}),
       JSON.stringify(symptoms_after  || {}),
