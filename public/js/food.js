@@ -72,9 +72,12 @@ function renderFoodAnalysis(res, container) {
       el.className = 'result-line';
       el.style.paddingLeft = '12px';
       if (item.found) {
-        el.textContent = `• ${item.name} ${item.grams}г — K:${item.k}мг  P:${item.p}мг  Na:${item.na}мг  ${item.cal}ккал`;
+        const srcBadge = item.source === 'ai'
+          ? ' <span style="font-size:10px;color:#1a73e8;background:#e8f0fe;padding:1px 5px;border-radius:8px">🤖 AI</span>'
+          : '';
+        el.innerHTML = `• <b>${item.name}</b> ${item.grams}г${srcBadge} — K:${item.k}мг  P:${item.p}мг  Na:${item.na}мг  ${item.cal}ккал`;
       } else {
-        el.textContent = `• ${item.name} ${item.grams}г — (нет в базе)`;
+        el.textContent = `• ${item.name} ${item.grams}г — (не найден)`;
         el.style.color = '#999';
       }
       container.appendChild(el);

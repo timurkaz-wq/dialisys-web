@@ -2,8 +2,12 @@
 // ══════════════════════════════════════════════
 //  AI-анализ питания через OpenRouter
 //  Текст → список продуктов → нутриенты
+//  Неизвестные продукты → AI-поиск нутриентов
 // ══════════════════════════════════════════════
-const { chatFood } = require('./llm');
+const { chatFood, chatQwen } = require('./llm');
+
+// Кэш AI-ответов: не спрашивать одно и то же дважды
+const _aiNutrientCache = new Map();
 
 // База нутриентов на 100 г (из JS_Dialisys, расширена)
 // cal=ккал, protein=г, k=мг, p=мг, na=мг, fluid=мл
@@ -213,16 +217,84 @@ function findInDB(name) {
 }
 
 // ══════════════════════════════════════════════
-//  Расчёт нутриентов по разобранному списку
+//  AI-поиск нутриентов для неизвестных продуктов
+//  Qwen3 знает состав любого продукта
 // ══════════════════════════════════════════════
-function calcNutrients(items) {
+async function lookupNutrientsFromAI(productName) {
+  const key = productName.toLowerCase().trim();
+  if (_aiNutrientCache.has(key)) return _aiNutrientCache.get(key);
+
+  try {
+    const messages = [
+      {
+        role: 'system',
+        content: `Ты — база данных нутриентов. Для любого продукта питания возвращай ТОЛЬКО JSON с нутриентами на 100 г.
+Формат (строго JSON, без markdown, без пояснений):
+{"cal":0,"protein":0,"k":0,"p":0,"na":0,"fluid":0}
+Где:
+- cal: калории (ккал)
+- protein: белок (г)
+- k: калий (мг)
+- p: фосфор (мг)
+- na: натрий (мг)
+- fluid: содержание жидкости (мл, для напитков ~200, для твёрдых продуктов 0)
+Отвечай ТОЛЬКО JSON-объектом.`,
+      },
+      {
+        role: 'user',
+        content: `Нутриенты на 100г: "${productName}"`,
+      },
+    ];
+
+    const result = await chatQwen(messages);
+    if (!result?.content) return null;
+
+    const clean = result.content.replace(/```json|```/gi, '').trim();
+    const jsonMatch = clean.match(/\{[\s\S]*?\}/);
+    if (!jsonMatch) return null;
+
+    const data = JSON.parse(jsonMatch[0]);
+    // Валидация — должны быть числа
+    const validated = {
+      cal:     parseFloat(data.cal)     || 0,
+      protein: parseFloat(data.protein) || 0,
+      k:       parseFloat(data.k)       || 0,
+      p:       parseFloat(data.p)       || 0,
+      na:      parseFloat(data.na)      || 0,
+      fluid:   parseFloat(data.fluid)   || 0,
+    };
+
+    // Кэшируем чтобы не спрашивать повторно
+    _aiNutrientCache.set(key, validated);
+    console.log(`[FoodAI] Нашёл через AI: "${productName}" → K:${validated.k} P:${validated.p} Na:${validated.na}`);
+    return validated;
+  } catch (e) {
+    console.error('[FoodAI] Ошибка поиска нутриентов:', e.message);
+    return null;
+  }
+}
+
+// ══════════════════════════════════════════════
+//  Расчёт нутриентов по разобранному списку
+//  (async: неизвестные продукты ищет через AI)
+// ══════════════════════════════════════════════
+async function calcNutrients(items) {
   let totalK = 0, totalP = 0, totalNa = 0, totalCal = 0, totalProtein = 0, totalFluid = 0;
   const detailed = [];
 
   for (const item of items) {
-    const db = findInDB(item.name);
     const grams = item.grams || 100;
     const factor = grams / 100;
+
+    // Сначала ищем в локальной базе (мгновенно)
+    let db = findInDB(item.name);
+    let source = 'db';
+
+    // Если не нашли — спрашиваем AI (автоматически)
+    if (!db) {
+      db = await lookupNutrientsFromAI(item.name);
+      source = 'ai';
+    }
 
     if (db) {
       const row = {
@@ -235,6 +307,7 @@ function calcNutrients(items) {
         na:      Math.round(db.na      * factor),
         fluid:   Math.round(db.fluid   * factor),
         found:   true,
+        source,  // 'db' или 'ai'
       };
       totalK       += row.k;
       totalP       += row.p;
@@ -244,18 +317,18 @@ function calcNutrients(items) {
       totalFluid   += row.fluid;
       detailed.push(row);
     } else {
-      detailed.push({ name: item.name, grams, found: false });
+      detailed.push({ name: item.name, grams, found: false, source: 'unknown' });
     }
   }
 
   return {
-    items:        detailed,
-    total_k:      totalK,
-    total_p:      totalP,
-    total_na:     totalNa,
-    total_cal:    totalCal,
+    items:         detailed,
+    total_k:       totalK,
+    total_p:       totalP,
+    total_na:      totalNa,
+    total_cal:     totalCal,
     total_protein: parseFloat(totalProtein.toFixed(1)),
-    total_fluid:  totalFluid,
+    total_fluid:   totalFluid,
   };
 }
 
@@ -300,8 +373,8 @@ async function analyzeFoodText(text) {
     parsed = [{ name: text.trim(), grams: 200 }];
   }
 
-  // 2. Считаем нутриенты по базе
-  const nutrients = calcNutrients(parsed);
+  // 2. Считаем нутриенты: локальная база → AI для неизвестных
+  const nutrients = await calcNutrients(parsed);
 
   return {
     original_text: text,
