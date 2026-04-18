@@ -73,7 +73,8 @@ router.get('/period', async (req, res) => {
     const baselineK = parseFloat(anaRows[0]?.k || 4.5);
 
     // ── 5. Расчёт по новой логике (фиксированный лимит на период) ──
-    const periodData = calcPeriodData(periodInfo, consumed, baselineK);
+    const kFactor = parseFloat(req.query.k_factor) || 1.0;
+    const periodData = calcPeriodData(periodInfo, consumed, baselineK, kFactor);
 
     // ── 6. AI-рекомендации что можно есть ──
     let recommendations = null;
@@ -90,9 +91,10 @@ router.get('/period', async (req, res) => {
       totalDays,
       daysElapsed,
       daysRemaining,
+      kFactor,
       consumed,
       byDay,
-      ...periodData,   // nutrients{k,p,na,fluid}, prediction
+      ...periodData,   // nutrients{k,p,na,fluid}, prediction, limits, kFactor
       recommendations,
     });
   } catch (e) {
@@ -119,7 +121,7 @@ async function _buildRecommendations(periodData, daysRemaining) {
     },
     {
       role: 'user',
-      content: `До следующего диализа осталось ${daysRemaining} дн. Текущий баланс нутриентов за период:\n${lines}\nПрогноз калия в крови: ${prediction.k_blood} ммоль/л (${prediction.risk.label})\n\nЧто можно есть? Конкретные продукты.`,
+      content: `До следующего диализа осталось ${daysRemaining} дн. Текущий баланс нутриентов за период:\n${lines}\nПрогноз калия в крови сейчас: ${prediction.k_blood_now} ммоль/л (${prediction.risk_now.label}), к концу периода: ${prediction.k_blood_end} ммоль/л (${prediction.risk_end.label})\n\nЧто можно есть? Конкретные продукты.`,
     },
   ];
 

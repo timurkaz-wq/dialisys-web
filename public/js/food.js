@@ -208,6 +208,30 @@ async function deleteFood(id) {
   }
 }
 
+// ── Режим строгости периода ──
+function getPeriodMode() {
+  return localStorage.getItem('periodMode') || 'normal';
+}
+
+function setPeriodMode(mode) {
+  localStorage.setItem('periodMode', mode);
+  _updateModeButtons(mode);
+  loadPeriodSummary();
+}
+
+function _updateModeButtons(mode) {
+  const btnN = document.getElementById('btnModeNormal');
+  const btnS = document.getElementById('btnModeStrict');
+  if (!btnN || !btnS) return;
+  if (mode === 'strict') {
+    btnN.style.cssText = 'flex:1;padding:4px 0;font-size:12px;border-radius:16px;border:1.5px solid #ccc;background:#f4f6f8;color:#888;cursor:pointer;font-weight:600';
+    btnS.style.cssText = 'flex:1;padding:4px 0;font-size:12px;border-radius:16px;border:1.5px solid #e74c3c;background:#fff0f0;color:#e74c3c;cursor:pointer;font-weight:700';
+  } else {
+    btnN.style.cssText = 'flex:1;padding:4px 0;font-size:12px;border-radius:16px;border:1.5px solid #27ae60;background:#eafaf1;color:#27ae60;cursor:pointer;font-weight:700';
+    btnS.style.cssText = 'flex:1;padding:4px 0;font-size:12px;border-radius:16px;border:1.5px solid #ccc;background:#f4f6f8;color:#888;cursor:pointer;font-weight:600';
+  }
+}
+
 // ── Межсеансовый период — новая логика ──
 async function loadPeriodSummary() {
   const barsEl  = document.getElementById('periodBars');
@@ -216,8 +240,12 @@ async function loadPeriodSummary() {
   const recEl   = document.getElementById('periodRecommendations');
   if (!barsEl) return;
 
+  // Восстановить кнопки режима
+  _updateModeButtons(getPeriodMode());
+
   try {
-    const data = await apiFetch('/food/period');
+    const kFactor = getPeriodMode() === 'strict' ? 0.8 : 1.0;
+    const data = await apiFetch(`/food/period?k_factor=${kFactor}`);
     const {
       periodStart, periodEnd, nextDialysisDate,
       totalDays, daysElapsed, daysRemaining,
@@ -245,8 +273,12 @@ async function loadPeriodSummary() {
       const pct = Math.min(n.pct, 100);
       const col = n.status.color;
 
+      // Прогнозный бар (тонкий, отдельным цветом)
+      const projPct = Math.min(n.projectedPct, 100);
+      const projCol = n.projStatus.color;
+
       const wrap = document.createElement('div');
-      wrap.style.marginBottom = '8px';
+      wrap.style.marginBottom = '10px';
       wrap.innerHTML = `
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;align-items:baseline">
           <span style="font-weight:700;color:#3a4a5a">${n.status.icon} ${label}</span>
@@ -259,20 +291,27 @@ async function loadPeriodSummary() {
         <div style="height:8px;background:#dde2e8;border-radius:5px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:${col};border-radius:5px;transition:width .5s"></div>
         </div>
-        <div style="font-size:11px;color:#888;margin-top:2px;text-align:right">
-          Осталось: <b style="color:${col}">${n.remain} ${unit}</b>
-          · Норма/день: ${n.dailyIdeal} ${unit}
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-top:2px">
+          <span>Осталось: <b style="color:${col}">${n.remain} ${unit}</b></span>
+          <span>Норма/день: ${n.dailyIdeal} ${unit}</span>
+        </div>
+        <div style="margin-top:3px;padding:3px 6px;border-radius:6px;background:${projCol}12;border:1px solid ${projCol}30;display:flex;justify-content:space-between;font-size:11px">
+          <span style="color:${projCol}">${n.projStatus.icon} Прогноз к диализу: ${n.projected} ${unit} (${n.projectedPct}%)</span>
+          ${n.projOverrun > 0 ? `<span style="color:#e74c3c;font-weight:700">+${n.projOverrun} ${unit} лишнего</span>` : '<span style="color:#27ae60">✓ уложишься</span>'}
         </div>`;
       barsEl.appendChild(wrap);
     });
 
     // ── Прогноз калия в крови ──
     if (prediction) {
+      const rNow = prediction.risk_now;
+      const rEnd = prediction.risk_end;
       const pred = document.createElement('div');
-      pred.style.cssText = `margin-top:8px;padding:8px 10px;border-radius:8px;background:${prediction.risk.color}18;border:1px solid ${prediction.risk.color}44;font-size:12px`;
+      pred.style.cssText = `margin-top:8px;padding:8px 10px;border-radius:8px;background:${rEnd.color}18;border:1px solid ${rEnd.color}44;font-size:12px`;
       pred.innerHTML = `
-        <span style="font-weight:700;color:${prediction.risk.color}">${prediction.risk.icon} Прогноз K в крови перед диализом: ${prediction.k_blood} ммоль/л — ${prediction.risk.label}</span>
-        <span style="color:#888;font-size:11px;margin-left:6px">(базовый: ${prediction.baselineK} ммоль/л)</span>`;
+        <div style="font-weight:700;color:${rNow.color}">${rNow.icon} K крови сейчас: ${prediction.k_blood_now} ммоль/л — ${rNow.label}</div>
+        <div style="margin-top:3px;color:${rEnd.color}">${rEnd.icon} К концу периода: ${prediction.k_blood_end} ммоль/л — ${rEnd.label}</div>
+        <div style="color:#888;font-size:11px;margin-top:2px">базовый: ${prediction.baselineK} ммоль/л</div>`;
       barsEl.appendChild(pred);
     }
 
@@ -391,6 +430,9 @@ document.addEventListener('DOMContentLoaded', () => {
     foodDateEl.value = todayStr();
     foodDateEl.addEventListener('change', loadFoodToday);
   }
+
+  // Кнопки режима строгости — инициализировать
+  _updateModeButtons(getPeriodMode());
 
   // Загрузить данные периода сразу
   loadPeriodSummary();

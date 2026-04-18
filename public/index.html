@@ -266,9 +266,20 @@
 
     <!-- ── Межсеансовый период ── -->
     <div class="card" id="periodCard">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div class="card-label" style="margin:0">📅 Период с последнего диализа</div>
         <span id="periodDaysLabel" style="font-size:12px;color:#888;background:#e8ecf0;padding:2px 8px;border-radius:10px">загрузка...</span>
+      </div>
+      <!-- Режим строгости -->
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button id="btnModeNormal" onclick="setPeriodMode('normal')"
+          style="flex:1;padding:4px 0;font-size:12px;border-radius:16px;border:1.5px solid #27ae60;background:#eafaf1;color:#27ae60;cursor:pointer;font-weight:700">
+          🟢 Обычный
+        </button>
+        <button id="btnModeStrict" onclick="setPeriodMode('strict')"
+          style="flex:1;padding:4px 0;font-size:12px;border-radius:16px;border:1.5px solid #ccc;background:#f4f6f8;color:#888;cursor:pointer;font-weight:600">
+          🔴 Строгий −20%
+        </button>
       </div>
       <!-- Прогресс-бары периода -->
       <div id="periodBars" style="display:flex;flex-direction:column;gap:6px">
