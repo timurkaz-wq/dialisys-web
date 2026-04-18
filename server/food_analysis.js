@@ -25,7 +25,7 @@ const FOODS_DB = {
   // ── Картофель (важно: замоченный снижает K на 50%) ──
   'картофель варёный':         { cal:  80, protein: 2.0,  k: 170, p:  44, na:   5, fluid:  0 },
   'картофель жареный':         { cal: 180, protein: 2.5,  k: 250, p:  55, na: 150, fluid:  0 },
-  'картофельное пюре':         { cal:  90, protein: 2.0,  k: 180, p:  45, na: 200, fluid:  0 },
+  'картофельное пюре':         { cal:  90, protein: 2.0,  k: 180, p:  45, na: 200, fluid:  0, approx: true },
   // ── Мясо ──
   'куриная грудка варёная':    { cal: 165, protein: 31.0, k: 230, p: 180, na:  60, fluid:  0 },
   'куриное бедро варёное':     { cal: 185, protein: 25.0, k: 210, p: 160, na:  70, fluid:  0 },
@@ -33,11 +33,11 @@ const FOODS_DB = {
   'говядина варёная':          { cal: 250, protein: 26.0, k: 260, p: 160, na:  60, fluid:  0 },
   'телятина варёная':          { cal: 190, protein: 30.0, k: 280, p: 170, na:  65, fluid:  0 },
   'кролик тушёный':            { cal: 160, protein: 25.0, k: 200, p: 160, na:  50, fluid:  0 },
-  'котлета домашняя':          { cal: 220, protein: 17.0, k: 200, p: 140, na: 350, fluid:  0 },
+  'котлета домашняя':          { cal: 220, protein: 17.0, k: 200, p: 140, na: 350, fluid:  0, approx: true },
   'яичный белок':              { cal:  52, protein: 11.0, k: 150, p:  15, na: 160, fluid:  0 },
   'яйцо варёное':              { cal: 155, protein: 13.0, k: 126, p: 172, na: 124, fluid:  0 },
-  'яичница':                   { cal: 185, protein: 13.5, k: 130, p: 175, na: 200, fluid:  0 },
-  'омлет':                     { cal: 160, protein: 12.0, k: 140, p: 160, na: 250, fluid:  0 },
+  'яичница':                   { cal: 185, protein: 13.5, k: 130, p: 175, na: 200, fluid:  0, approx: true },
+  'омлет':                     { cal: 160, protein: 12.0, k: 140, p: 160, na: 250, fluid:  0, approx: true },
   // ── Рыба ──
   'треска варёная':            { cal:  80, protein: 17.0, k: 250, p: 160, na:  60, fluid:  0 },
   'минтай варёный':            { cal:  70, protein: 16.0, k: 240, p: 150, na:  60, fluid:  0 },
@@ -82,11 +82,11 @@ const FOODS_DB = {
   'вода':                      { cal:   0, protein: 0.0,  k:   0, p:   0, na:   0, fluid: 200 },
   'компот домашний':           { cal:  50, protein: 0.2,  k:  40, p:   5, na:   2, fluid: 200 },
   'кисель':                    { cal:  55, protein: 0.1,  k:  30, p:   3, na:   2, fluid: 200 },
-  // ── Супы ──
-  'куриный суп с рисом':       { cal:  35, protein: 2.5,  k:  80, p:  30, na: 150, fluid: 250 },
-  'борщ':                      { cal:  40, protein: 1.8,  k: 120, p:  25, na: 200, fluid: 250 },
-  'суп с лапшой':              { cal:  45, protein: 3.0,  k:  85, p:  35, na: 180, fluid: 250 },
-  'суп овощной':               { cal:  30, protein: 1.5,  k:  90, p:  20, na: 120, fluid: 250 },
+  // ── Супы (состав варьируется — приблизительно) ──
+  'куриный суп с рисом':       { cal:  35, protein: 2.5,  k:  80, p:  30, na: 150, fluid: 250, approx: true },
+  'борщ':                      { cal:  40, protein: 1.8,  k: 120, p:  25, na: 200, fluid: 250, approx: true },
+  'суп с лапшой':              { cal:  45, protein: 3.0,  k:  85, p:  35, na: 180, fluid: 250, approx: true },
+  'суп овощной':               { cal:  30, protein: 1.5,  k:  90, p:  20, na: 120, fluid: 250, approx: true },
   // ── Сухофрукты (ВЫСОКИЙ КАЛИЙ — опасно для диализника!) ──
   'курага':                    { cal: 241, protein: 3.4,  k:1160, p:  71, na:  10, fluid:  0 },
   'изюм':                      { cal: 299, protein: 3.1,  k: 825, p:  75, na:  26, fluid:  0 },
@@ -102,21 +102,21 @@ const FOODS_DB = {
   'орехи':                     { cal: 620, protein:16.0,  k: 600, p: 400, na:   2, fluid:  0 },
   'семечки':                   { cal: 570, protein:21.0,  k: 645, p: 705, na:   4, fluid:  0 },
   // ── Колбасные изделия (ВЫСОКИЙ Na и P — только по праздникам!) ──
-  'варёная колбаса':           { cal: 257, protein:12.0,  k: 270, p: 178, na:1000, fluid:  0 },
-  'сосиски':                   { cal: 266, protein:11.0,  k: 200, p: 160, na: 900, fluid:  0 },
-  'сардельки':                 { cal: 332, protein:11.0,  k: 210, p: 170, na: 850, fluid:  0 },
-  'колбаса копчёная':          { cal: 400, protein:17.0,  k: 280, p: 210, na:1500, fluid:  0 },
-  'ветчина':                   { cal: 270, protein:22.0,  k: 330, p: 210, na: 800, fluid:  0 },
-  // ── Сыры (ОЧЕНЬ ВЫСОКИЙ P — опасно для диализника!) ──
-  'сыр твёрдый':               { cal: 380, protein:25.0,  k: 100, p: 600, na: 700, fluid:  0 },
-  'сыр мягкий':                { cal: 260, protein:18.0,  k:  80, p: 450, na: 500, fluid:  0 },
-  'сыр плавленый':             { cal: 300, protein:17.0,  k: 120, p: 700, na:1000, fluid:  0 },
-  'брынза':                    { cal: 261, protein:17.0,  k: 100, p: 400, na:1200, fluid:  0 },
-  'творожный сыр':             { cal: 340, protein:10.0,  k:  90, p: 320, na: 350, fluid:  0 },
-  // ── Консервы (ВЫСОКИЙ Na!) ──
-  'тушёнка говяжья':           { cal: 220, protein:15.0,  k: 200, p: 140, na: 700, fluid:  0 },
-  'рыбные консервы':           { cal: 200, protein:18.0,  k: 230, p: 250, na: 600, fluid:  0 },
-  'шпроты':                    { cal: 363, protein:17.0,  k: 250, p: 300, na: 750, fluid:  0 },
+  'варёная колбаса':           { cal: 257, protein:12.0,  k: 270, p: 178, na:1000, fluid:  0, approx: true },
+  'сосиски':                   { cal: 266, protein:11.0,  k: 200, p: 160, na: 900, fluid:  0, approx: true },
+  'сардельки':                 { cal: 332, protein:11.0,  k: 210, p: 170, na: 850, fluid:  0, approx: true },
+  'колбаса копчёная':          { cal: 400, protein:17.0,  k: 280, p: 210, na:1500, fluid:  0, approx: true },
+  'ветчина':                   { cal: 270, protein:22.0,  k: 330, p: 210, na: 800, fluid:  0, approx: true },
+  // ── Сыры (ОЧЕНЬ ВЫСОКИЙ P — состав зависит от марки) ──
+  'сыр твёрдый':               { cal: 380, protein:25.0,  k: 100, p: 600, na: 700, fluid:  0, approx: true },
+  'сыр мягкий':                { cal: 260, protein:18.0,  k:  80, p: 450, na: 500, fluid:  0, approx: true },
+  'сыр плавленый':             { cal: 300, protein:17.0,  k: 120, p: 700, na:1000, fluid:  0, approx: true },
+  'брынза':                    { cal: 261, protein:17.0,  k: 100, p: 400, na:1200, fluid:  0, approx: true },
+  'творожный сыр':             { cal: 340, protein:10.0,  k:  90, p: 320, na: 350, fluid:  0, approx: true },
+  // ── Консервы (ВЫСОКИЙ Na! состав зависит от производителя) ──
+  'тушёнка говяжья':           { cal: 220, protein:15.0,  k: 200, p: 140, na: 700, fluid:  0, approx: true },
+  'рыбные консервы':           { cal: 200, protein:18.0,  k: 230, p: 250, na: 600, fluid:  0, approx: true },
+  'шпроты':                    { cal: 363, protein:17.0,  k: 250, p: 300, na: 750, fluid:  0, approx: true },
   // ── Прочее ──
   'сахар':                     { cal: 387, protein: 0.0,  k:   2, p:   0, na:   1, fluid:  0 },
   'варенье':                   { cal: 270, protein: 0.3,  k:  50, p:   5, na:   5, fluid:  0 },
@@ -124,29 +124,29 @@ const FOODS_DB = {
   'шоколад молочный':          { cal: 535, protein: 7.0,  k: 372, p: 208, na:  79, fluid:  0 },
   'печенье':                   { cal: 440, protein: 6.0,  k: 100, p:  80, na: 350, fluid:  0 },
 
-  // ── Казахские / центральноазиатские блюда ──
-  'бешбармак':                 { cal: 215, protein:13.5,  k: 210, p: 140, na: 360, fluid:  0 },
-  'манты':                     { cal: 195, protein:11.5,  k: 175, p: 120, na: 290, fluid:  0 },
-  'плов':                      { cal: 220, protein: 7.0,  k: 150, p:  80, na: 310, fluid:  0 },
-  'лагман':                    { cal: 115, protein: 7.5,  k: 195, p:  90, na: 400, fluid:200 },
-  'шурпа':                     { cal:  55, protein: 4.5,  k: 175, p:  65, na: 340, fluid:250 },
-  'казы':                      { cal: 390, protein:16.0,  k: 300, p: 200, na:1200, fluid:  0 },
-  'шашлык из баранины':        { cal: 220, protein:21.5,  k: 260, p: 185, na: 200, fluid:  0 },
-  'шашлык из курицы':          { cal: 175, protein:23.0,  k: 240, p: 175, na: 180, fluid:  0 },
-  'самса':                     { cal: 280, protein:10.0,  k: 150, p: 100, na: 400, fluid:  0 },
-  'куырдак':                   { cal: 250, protein:18.0,  k: 275, p: 195, na: 350, fluid:  0 },
-  'баурсаки':                  { cal: 350, protein: 7.0,  k:  80, p:  70, na: 400, fluid:  0 },
+  // ── Казахские / центральноазиатские блюда (приблизительно — рецепты различаются) ──
+  'бешбармак':                 { cal: 215, protein:13.5,  k: 210, p: 140, na: 360, fluid:  0, approx: true },
+  'манты':                     { cal: 195, protein:11.5,  k: 175, p: 120, na: 290, fluid:  0, approx: true },
+  'плов':                      { cal: 220, protein: 7.0,  k: 150, p:  80, na: 310, fluid:  0, approx: true },
+  'лагман':                    { cal: 115, protein: 7.5,  k: 195, p:  90, na: 400, fluid:200, approx: true },
+  'шурпа':                     { cal:  55, protein: 4.5,  k: 175, p:  65, na: 340, fluid:250, approx: true },
+  'казы':                      { cal: 390, protein:16.0,  k: 300, p: 200, na:1200, fluid:  0, approx: true },
+  'шашлык из баранины':        { cal: 220, protein:21.5,  k: 260, p: 185, na: 200, fluid:  0, approx: true },
+  'шашлык из курицы':          { cal: 175, protein:23.0,  k: 240, p: 175, na: 180, fluid:  0, approx: true },
+  'самса':                     { cal: 280, protein:10.0,  k: 150, p: 100, na: 400, fluid:  0, approx: true },
+  'куырдак':                   { cal: 250, protein:18.0,  k: 275, p: 195, na: 350, fluid:  0, approx: true },
+  'баурсаки':                  { cal: 350, protein: 7.0,  k:  80, p:  70, na: 400, fluid:  0, approx: true },
   'кумыс':                     { cal:  44, protein: 2.1,  k: 115, p:  78, na:  48, fluid:200 },
   'шубат':                     { cal:  68, protein: 4.0,  k: 135, p:  95, na:  80, fluid:200 },
 
-  // ── Пельмени / вареники / блины ──
-  'пельмени варёные':          { cal: 250, protein:12.0,  k: 140, p: 120, na: 400, fluid:  0 },
-  'вареники с картофелем':     { cal: 175, protein: 5.5,  k: 150, p:  70, na: 300, fluid:  0 },
-  'вареники с творогом':       { cal: 195, protein:10.0,  k: 120, p: 150, na: 250, fluid:  0 },
-  'блины':                     { cal: 230, protein: 6.0,  k: 100, p:  90, na: 350, fluid:  0 },
-  'блинчики':                  { cal: 220, protein: 6.0,  k: 100, p:  90, na: 340, fluid:  0 },
-  'сырники':                   { cal: 240, protein:14.0,  k: 115, p: 175, na: 200, fluid:  0 },
-  'запеканка творожная':       { cal: 170, protein:14.0,  k: 130, p: 180, na: 150, fluid:  0 },
+  // ── Пельмени / вареники / блины (приблизительно) ──
+  'пельмени варёные':          { cal: 250, protein:12.0,  k: 140, p: 120, na: 400, fluid:  0, approx: true },
+  'вареники с картофелем':     { cal: 175, protein: 5.5,  k: 150, p:  70, na: 300, fluid:  0, approx: true },
+  'вареники с творогом':       { cal: 195, protein:10.0,  k: 120, p: 150, na: 250, fluid:  0, approx: true },
+  'блины':                     { cal: 230, protein: 6.0,  k: 100, p:  90, na: 350, fluid:  0, approx: true },
+  'блинчики':                  { cal: 220, protein: 6.0,  k: 100, p:  90, na: 340, fluid:  0, approx: true },
+  'сырники':                   { cal: 240, protein:14.0,  k: 115, p: 175, na: 200, fluid:  0, approx: true },
+  'запеканка творожная':       { cal: 170, protein:14.0,  k: 130, p: 180, na: 150, fluid:  0, approx: true },
 
   // ── Ещё каши ──
   'пшённая каша на воде':      { cal:  90, protein: 3.0,  k: 100, p:  85, na:   5, fluid:200 },
@@ -180,12 +180,12 @@ const FOODS_DB = {
   'зефир':                     { cal: 326, protein: 0.8,  k:  10, p:  20, na:  20, fluid:  0 },
   'мармелад':                  { cal: 290, protein: 0.1,  k:  10, p:   5, na:  10, fluid:  0 },
   'пастила':                   { cal: 310, protein: 0.5,  k:  20, p:  10, na:  15, fluid:  0 },
-  'халва':                     { cal: 520, protein:12.0,  k: 350, p: 330, na:  50, fluid:  0 },
-  'торт бисквитный':           { cal: 350, protein: 5.0,  k: 100, p: 100, na: 200, fluid:  0 },
-  'пирожок с мясом':           { cal: 270, protein: 9.5,  k: 140, p:  90, na: 380, fluid:  0 },
-  'пирожок с капустой':        { cal: 230, protein: 5.5,  k:  80, p:  55, na: 340, fluid:  0 },
-  'ватрушка':                  { cal: 300, protein: 7.5,  k: 100, p: 110, na: 300, fluid:  0 },
-  'рогалик':                   { cal: 350, protein: 8.0,  k:  90, p:  85, na: 380, fluid:  0 },
+  'халва':                     { cal: 520, protein:12.0,  k: 350, p: 330, na:  50, fluid:  0, approx: true },
+  'торт бисквитный':           { cal: 350, protein: 5.0,  k: 100, p: 100, na: 200, fluid:  0, approx: true },
+  'пирожок с мясом':           { cal: 270, protein: 9.5,  k: 140, p:  90, na: 380, fluid:  0, approx: true },
+  'пирожок с капустой':        { cal: 230, protein: 5.5,  k:  80, p:  55, na: 340, fluid:  0, approx: true },
+  'ватрушка':                  { cal: 300, protein: 7.5,  k: 100, p: 110, na: 300, fluid:  0, approx: true },
+  'рогалик':                   { cal: 350, protein: 8.0,  k:  90, p:  85, na: 380, fluid:  0, approx: true },
 
   // ── Баранина / свинина ──
   'баранина варёная':          { cal: 260, protein:25.0,  k: 290, p: 175, na:  65, fluid:  0 },
@@ -441,7 +441,8 @@ async function calcNutrients(items) {
         na:      Math.round(db.na      * factor),
         fluid:   Math.round(db.fluid   * factor),
         found:   true,
-        source,  // 'db' или 'ai'
+        source,         // 'db' или 'ai'
+        approx:  source === 'ai' ? true : (db.approx || false),
       };
       totalK       += row.k;
       totalP       += row.p;

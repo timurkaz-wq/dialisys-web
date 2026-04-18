@@ -76,7 +76,10 @@ function renderFoodAnalysis(res, container) {
         const srcBadge = item.source === 'ai'
           ? ' <span style="font-size:10px;color:#1a73e8;background:#e8f0fe;padding:1px 5px;border-radius:8px">🤖 AI</span>'
           : '';
-        el.innerHTML = `• <b>${item.name}</b> ${item.grams}г${srcBadge} — K:${item.k}мг  P:${item.p}мг  Na:${item.na}мг  ${item.cal}ккал`;
+        const approxBadge = item.approx
+          ? ' <span title="Составное блюдо — данные приблизительные. Для точности опишите ингредиенты по отдельности." style="font-size:10px;color:#e67e22;background:#fff8f0;padding:1px 5px;border-radius:8px;cursor:help">⚠️ ~прибл.</span>'
+          : '';
+        el.innerHTML = `• <b>${item.name}</b> ${item.grams}г${srcBadge}${approxBadge} — K:${item.k}мг  P:${item.p}мг  Na:${item.na}мг  ${item.cal}ккал`;
       } else {
         el.textContent = `• ${item.name} ${item.grams}г — (не найден)`;
         el.style.color = '#999';
@@ -91,6 +94,15 @@ function renderFoodAnalysis(res, container) {
   sep.style.cssText = 'border-top:2px solid #e0e0e0; margin-top:6px; padding-top:8px; color:#1a73e8';
   sep.textContent = `Итого: K:${Math.round(totals.k||0)}мг  P:${Math.round(totals.p||0)}мг  Na:${Math.round(totals.na||0)}мг  ${Math.round(totals.cal||0)}ккал`;
   container.appendChild(sep);
+
+  // Подсказка если есть приблизительные блюда
+  const hasApprox = analysis?.items?.some(i => i.approx);
+  if (hasApprox) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'margin-top:5px;padding:5px 8px;background:#fff8f0;border-left:3px solid #e67e22;border-radius:0 6px 6px 0;font-size:11px;color:#b35a00';
+    hint.innerHTML = '⚠️ <b>Некоторые блюда посчитаны приблизительно</b> — рецепты различаются.<br>Для точности опишите ингредиенты отдельно: <i>«баранина 200г, лапша 150г, лук 30г»</i>';
+    container.appendChild(hint);
+  }
 
   // Предупреждения
   if (warnings?.length) {
