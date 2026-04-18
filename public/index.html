@@ -330,6 +330,23 @@
       <div id="menuResult" style="font-size:13px; color:#5a6a7a">Нажмите кнопку — AI подберёт подходящее меню</div>
     </div>
 
+    <!-- Push-уведомления -->
+    <div class="card" style="margin-top:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div class="card-label" style="margin-bottom:2px">🔔 Напоминания</div>
+          <div id="pushStatusLabel" style="font-size:12px;color:#888">проверяю...</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button id="btnPushTest" style="display:none;padding:5px 10px;font-size:11px;border-radius:14px;border:1.5px solid #1a6ccc;background:#e8f0fe;color:#1a6ccc;cursor:pointer">📨 Тест</button>
+          <button id="btnPushToggle" style="padding:5px 12px;font-size:12px;border-radius:16px;border:1.5px solid #27ae60;background:#eafaf1;color:#27ae60;cursor:pointer">🔔 Включить</button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:4px">
+        Диализ утром, накануне, напоминание об обеде
+      </div>
+    </div>
+
     <!-- Список за день -->
     <div class="section-title" style="margin-top:16px">Записи за день</div>
     <div id="foodLogList">
@@ -461,5 +478,6 @@
 <script src="/js/food.js?v=4"></script>
 <script src="/js/history.js?v=4"></script>
 <script src="/js/chat.js?v=4"></script>
+<script src="/js/notifications.js?v=1"></script>
 </body>
 </html>

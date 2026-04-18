@@ -27,6 +27,7 @@ app.use('/api/procedures', require('./routes/procedures'));
 app.use('/api/food',       require('./routes/food'));
 app.use('/api/chat',       require('./routes/chat'));
 app.use('/api/export',     require('./routes/export'));
+app.use('/api/push',       require('./routes/push'));
 
 // ── Инфо о пациенте ──
 app.get('/api/patient', (req, res) => {
@@ -81,6 +82,13 @@ async function start() {
       console.log(`   Пациент:   ${cfg.PATIENT_NAME}`);
       console.log(`   Модель AI: ${cfg.MODEL_CHAT}\n`);
     });
+
+    // Запускаем планировщик push-уведомлений (только если VAPID настроен)
+    if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+      require('./push_scheduler');
+    } else {
+      console.warn('[Push] VAPID ключи не настроены — уведомления отключены');
+    }
   } catch (err) {
     console.error('❌ Ошибка запуска:', err.message);
     process.exit(1);

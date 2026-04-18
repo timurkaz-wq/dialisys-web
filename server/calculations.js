@@ -118,13 +118,21 @@ function calcTemp(hypotension) {
   return hypotension === 1 ? 36.0 : 36.5;
 }
 
+// Клинический минимум длительности диализа (ч)
+const MIN_DIALYSIS_HOURS = 4.0;
+
 // ══════════════════════════════════════════════
 //  Полный расчёт настроек аппарата
 // ══════════════════════════════════════════════
 function calcMachineSettings({ dryWeight, currentWeight, analysis, bpSystolic, cramps, hypotension }) {
-  const fluidMl        = calcFluidMl(currentWeight, dryWeight);
-  const minSafeTime    = calcMinSafeTime(fluidMl, dryWeight);
-  const recommendedTime = roundUpHalfHour(minSafeTime);
+  const fluidMl = calcFluidMl(currentWeight, dryWeight);
+
+  // Расчётный минимум по UF (сколько нужно по жидкости)
+  const rawMinTime = calcMinSafeTime(fluidMl, dryWeight);
+
+  // Применяем клинический минимум 4 часа
+  const minSafeTime     = Math.max(rawMinTime, MIN_DIALYSIS_HOURS);
+  const recommendedTime = Math.max(roundUpHalfHour(rawMinTime), MIN_DIALYSIS_HOURS);
 
   const qb = calcQb(dryWeight);
   const qd = 500;

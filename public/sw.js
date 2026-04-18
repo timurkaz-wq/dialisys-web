@@ -2,7 +2,7 @@
    Service Worker — PWA кэширование
    ══════════════════════════════════════════════ */
 
-const CACHE_NAME = 'dialisys-v4';
+const CACHE_NAME = 'dialisys-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -63,5 +63,45 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => caches.match(request))
+  );
+});
+
+// ══════════════════════════════════════════════
+//  Push — показать уведомление
+// ══════════════════════════════════════════════
+self.addEventListener('push', event => {
+  let data = { title: '💉 Диализ-Ассистент', body: 'Новое уведомление', icon: '/icons/icon-192.png' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:    data.body,
+      icon:    data.icon  || '/icons/icon-192.png',
+      badge:   '/icons/icon-72.png',
+      tag:     data.tag   || 'dialisys',
+      vibrate: [200, 100, 200],
+      data:    { url: '/' },
+    })
+  );
+});
+
+// ══════════════════════════════════════════════
+//  Клик по уведомлению — открыть приложение
+// ══════════════════════════════════════════════
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // Если приложение уже открыто — фокус на него
+      for (const client of list) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Иначе — открыть новую вкладку
+      if (clients.openWindow) return clients.openWindow('/');
+    })
   );
 });

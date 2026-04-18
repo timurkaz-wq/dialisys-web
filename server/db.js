@@ -150,6 +150,19 @@ async function initDB() {
   await query(`ALTER TABLE procedures ADD COLUMN IF NOT EXISTS shift_time TIME`);
   await query(`ALTER TABLE procedures ADD COLUMN IF NOT EXISTS status VARCHAR(10) DEFAULT 'complete'`);
 
+  // Таблица push-подписок
+  await query(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id         SERIAL    PRIMARY KEY,
+      endpoint   TEXT      NOT NULL UNIQUE,
+      p256dh     TEXT      NOT NULL,
+      auth       TEXT      NOT NULL,
+      timezone   VARCHAR(50) DEFAULT 'Asia/Almaty',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
   // Индексы для быстрых запросов
   await query(`CREATE INDEX IF NOT EXISTS idx_procedures_date    ON procedures(date DESC)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_food_logs_date     ON food_logs(date DESC)`);

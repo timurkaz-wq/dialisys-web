@@ -1,0 +1,152 @@
+/* ══════════════════════════════════════════════
+   notifications.js — управление push-уведомлениями
+   ══════════════════════════════════════════════ */
+
+// ── Конвертация VAPID public key в Uint8Array ──
+function _urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+// ── Проверить поддержку push ──
+function isPushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window;
+}
+
+// ── Получить текущее состояние ──
+async function getPushState() {
+  if (!isPushSupported()) return 'unsupported';
+  const perm = Notification.permission;
+  if (perm === 'denied')  return 'denied';
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  return sub ? 'subscribed' : 'unsubscribed';
+}
+
+// ── Подписаться на уведомления ──
+async function subscribePush() {
+  if (!isPushSupported()) {
+    showToast('Уведомления не поддерживаются в вашем браузере', 'warn');
+    return false;
+  }
+
+  // Запросить разрешение
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    showToast('Доступ к уведомлениям запрещён', 'warn');
+    return false;
+  }
+
+  try {
+    // Получить VAPID public key
+    const { publicKey } = await apiFetch('/push/vapid-key');
+
+    // Зарегистрировать подписку
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly:      true,
+      applicationServerKey: _urlBase64ToUint8Array(publicKey),
+    });
+
+    // Отправить на сервер
+    await apiFetch('/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({
+        subscription: sub.toJSON(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    });
+
+    showToast('🔔 Уведомления включены', 'success');
+    _updatePushUI('subscribed');
+    return true;
+  } catch (e) {
+    console.error('[Push] Ошибка подписки:', e);
+    showToast('Ошибка подключения уведомлений', 'error');
+    return false;
+  }
+}
+
+// ── Отписаться ──
+async function unsubscribePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await apiFetch('/push/unsubscribe', {
+        method: 'DELETE',
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+      await sub.unsubscribe();
+    }
+    showToast('🔕 Уведомления отключены', 'success');
+    _updatePushUI('unsubscribed');
+  } catch (e) {
+    showToast('Ошибка отключения уведомлений', 'error');
+  }
+}
+
+// ── Тестовое уведомление ──
+async function testPush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) { showToast('Сначала включи уведомления', 'warn'); return; }
+    await apiFetch('/push/test', {
+      method: 'POST',
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    });
+    showToast('📨 Тест отправлен', 'success');
+  } catch (e) {
+    showToast('Ошибка теста', 'error');
+  }
+}
+
+// ── Обновить кнопку в UI ──
+function _updatePushUI(state) {
+  const btn     = document.getElementById('btnPushToggle');
+  const btnTest = document.getElementById('btnPushTest');
+  const label   = document.getElementById('pushStatusLabel');
+  if (!btn) return;
+
+  if (state === 'subscribed') {
+    btn.textContent = '🔕 Отключить';
+    btn.style.cssText = 'padding:5px 12px;font-size:12px;border-radius:16px;border:1.5px solid #e74c3c;background:#fff0f0;color:#e74c3c;cursor:pointer';
+    btn.onclick = unsubscribePush;
+    if (label) { label.textContent = '🔔 Включены'; label.style.color = '#27ae60'; }
+    if (btnTest) btnTest.style.display = 'inline-block';
+  } else if (state === 'denied') {
+    btn.textContent = '🚫 Запрещены';
+    btn.disabled    = true;
+    btn.style.cssText = 'padding:5px 12px;font-size:12px;border-radius:16px;border:1.5px solid #ccc;background:#f4f6f8;color:#999;cursor:not-allowed';
+    if (label) { label.textContent = 'Запрещены в браузере'; label.style.color = '#e74c3c'; }
+    if (btnTest) btnTest.style.display = 'none';
+  } else if (state === 'unsupported') {
+    btn.textContent = '—';
+    btn.disabled    = true;
+    if (label) { label.textContent = 'Не поддерживается'; label.style.color = '#999'; }
+    if (btnTest) btnTest.style.display = 'none';
+  } else {
+    // unsubscribed
+    btn.textContent = '🔔 Включить';
+    btn.style.cssText = 'padding:5px 12px;font-size:12px;border-radius:16px;border:1.5px solid #27ae60;background:#eafaf1;color:#27ae60;cursor:pointer';
+    btn.onclick = subscribePush;
+    if (label) { label.textContent = '🔕 Отключены'; label.style.color = '#888'; }
+    if (btnTest) btnTest.style.display = 'none';
+  }
+}
+
+// ── Инициализация при загрузке ──
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!isPushSupported()) {
+    _updatePushUI('unsupported');
+    return;
+  }
+  const state = await getPushState();
+  _updatePushUI(state);
+
+  document.getElementById('btnPushToggle')?.addEventListener('click', subscribePush);
+  document.getElementById('btnPushTest')?.addEventListener('click', testPush);
+});
