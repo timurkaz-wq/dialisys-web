@@ -72,8 +72,9 @@ router.post('/test', async (req, res) => {
 
     await sendPush(rows[0], {
       title: '💉 Диализ-Ассистент',
-      body:  'Уведомления работают ✅',
+      body:  'Уведомления работают ✅ Так будет звучать сигнал диализа',
       icon:  '/icons/icon-192.png',
+      tag:   'dialysis-day',   // используем тег будильника для теста звука
     });
     res.json({ ok: true });
   } catch (e) {
