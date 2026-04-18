@@ -213,6 +213,28 @@ function renderSessionResult(res, container) {
       `K: ${d.k}  |  Na: ${d.na}  |  Ca: ${d.ca}  |  HCO₃: ${d.hco3}  |  Темп: ${d.temp}°C`, '#1a73e8'));
   }
 
+  // ── Питание: красные предупреждения по накопленным нутриентам ──
+  if (res.foodAlerts?.length) {
+    const foodDiv = document.createElement('div');
+    foodDiv.style.cssText = 'margin-top:12px; border-top:2px solid #e74c3c; padding-top:10px';
+
+    const foodTitle = document.createElement('div');
+    foodTitle.style.cssText = 'color:#e74c3c; font-size:14px; font-weight:700; margin-bottom:6px';
+    foodTitle.textContent = '🍽️ Внимание! По данным питания:';
+    foodDiv.appendChild(foodTitle);
+
+    res.foodAlerts.forEach(alert => {
+      const el = document.createElement('div');
+      el.style.cssText = `margin:6px 0; padding:8px 10px; background:${alert.level==='critical'?'#fff0f0':'#fff8f0'};
+        border-left:4px solid ${alert.color}; border-radius:0 8px 8px 0; font-size:13px`;
+      el.innerHTML = `<div style="color:${alert.color};font-weight:700">${alert.icon} ${alert.text}</div>
+        <div style="color:#555;margin-top:3px">→ ${alert.recommendation}</div>`;
+      foodDiv.appendChild(el);
+    });
+
+    container.appendChild(foodDiv);
+  }
+
   // Рекомендации для следующего сеанса
   if (res.nextRecommendations?.length) {
     const recDiv = document.createElement('div');

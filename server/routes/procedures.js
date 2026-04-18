@@ -173,6 +173,24 @@ router.post('/', async (req, res) => {
       cramps: cramps || 0,
     });
 
+    // Питание за период: накопленные K/P/Na → рекомендации по диализату
+    const sessionDate = date || new Date().toISOString().slice(0,10);
+    const { rows: foodRows } = await query(`
+      SELECT SUM(total_k) AS k, SUM(total_p) AS p, SUM(total_na) AS na
+      FROM food_logs
+      WHERE date <= $1
+        AND date >= (
+          SELECT COALESCE(MAX(date), $1 - INTERVAL '3 days')
+          FROM procedures WHERE date < $1
+        )
+    `, [sessionDate]);
+    const foodTotals = {
+      k:  parseFloat(foodRows[0]?.k  || 0),
+      p:  parseFloat(foodRows[0]?.p  || 0),
+      na: parseFloat(foodRows[0]?.na || 0),
+    };
+    const foodAlerts = _buildFoodAlerts(foodTotals, machineSettings);
+
     res.json({
       procedure:           rows[0],
       machineSettings,
@@ -185,6 +203,7 @@ router.post('/', async (req, res) => {
       ufRating:            calc.ufRating(ufMlkgH),
       loadRating:          calc.loadRating(loading),
       finalStatus:         status,
+      foodAlerts,
       nextRecommendations,
     });
   } catch (e) {
@@ -387,6 +406,73 @@ function _analyzeForNextSession({ bp_before, bp_during, bp_after, symptoms_durin
   }
 
   return tips;
+}
+
+// ── Красные предупреждения на основе накопленного питания ──
+function _buildFoodAlerts(food, machine) {
+  const alerts = [];
+  if (!food || (!food.k && !food.p && !food.na)) return alerts;
+
+  const { k, p, na } = food;
+
+  // ── Калий: рекомендовать низкий K в диализате ──
+  if (k > 4000) {
+    alerts.push({
+      level: 'critical',
+      icon: '🔴',
+      text: `Критически высокий калий из пищи: ${Math.round(k)} мг за период`,
+      recommendation: `Установить K диализата: 2.0 ммоль/л (минимум) — активное выведение`,
+      color: '#e74c3c',
+    });
+  } else if (k > 2800) {
+    alerts.push({
+      level: 'warn',
+      icon: '🟠',
+      text: `Повышенный калий из пищи: ${Math.round(k)} мг за период`,
+      recommendation: `Рекомендовано K диализата: 2.0–2.5 ммоль/л`,
+      color: '#e67e22',
+    });
+  }
+
+  // ── Фосфор: если высокий — внимание на кальций диализата ──
+  if (p > 1600) {
+    alerts.push({
+      level: 'critical',
+      icon: '🔴',
+      text: `Высокий фосфор из пищи: ${Math.round(p)} мг за период`,
+      recommendation: `Проверить приём фосфатбиндеров (карбонат кальция) перед едой. Ca диализата: ${machine?.dialysate?.ca || 1.375} ммоль/л`,
+      color: '#e74c3c',
+    });
+  } else if (p > 1100) {
+    alerts.push({
+      level: 'warn',
+      icon: '🟡',
+      text: `Умеренно высокий фосфор: ${Math.round(p)} мг за период`,
+      recommendation: `Принять фосфатбиндер. Ca диализата оставить ${machine?.dialysate?.ca || 1.375} ммоль/л`,
+      color: '#e67e22',
+    });
+  }
+
+  // ── Натрий: повлияет на жажду и набор жидкости ──
+  if (na > 3000) {
+    alerts.push({
+      level: 'critical',
+      icon: '🔴',
+      text: `Очень высокий натрий: ${Math.round(na)} мг — избыточная жажда`,
+      recommendation: `Na диализата снизить до 136–137 ммоль/л для коррекции жажды`,
+      color: '#e74c3c',
+    });
+  } else if (na > 2000) {
+    alerts.push({
+      level: 'warn',
+      icon: '🟡',
+      text: `Повышенный натрий: ${Math.round(na)} мг — возможна жажда`,
+      recommendation: `Na диализата: 137–138 ммоль/л`,
+      color: '#e67e22',
+    });
+  }
+
+  return alerts;
 }
 
 module.exports = router;
