@@ -40,8 +40,9 @@ async function addFood() {
     // Обновить нормы
     updateFoodNorms(res.totals);
 
-    // Обновить список
+    // Обновить список и период
     loadFoodToday();
+    loadPeriodSummary();
 
     document.getElementById('foodInput').value = '';
     showToast('✅ Питание добавлено', 'success');
@@ -207,6 +208,101 @@ async function deleteFood(id) {
   }
 }
 
+// ── Межсеансовый период: накопленные нутриенты ──
+async function loadPeriodSummary() {
+  const barsEl   = document.getElementById('periodBars');
+  const daysEl   = document.getElementById('periodDaysLabel');
+  const byDayEl  = document.getElementById('periodByDay');
+  const recEl    = document.getElementById('periodRecommendations');
+  if (!barsEl) return;
+
+  try {
+    const data = await apiFetch('/food/period');
+    const { fromDate, toDate, days, byDay, totals, limits, warnings, dialysisDates, recommendations } = data;
+
+    // Заголовок периода
+    const fmt = d => new Date(d + 'T12:00:00').toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
+    daysEl.textContent = fromDate === toDate
+      ? `${fmt(fromDate)} (1 день)`
+      : `${fmt(fromDate)} — ${fmt(toDate)} (${days} дн.)`;
+
+    // Прогресс-бары накопленных нутриентов
+    barsEl.innerHTML = '';
+    const nutrients = [
+      { key:'k',  label:'Калий',   unit:'мг', val: Math.round(totals.k),  max: limits.k  },
+      { key:'p',  label:'Фосфор',  unit:'мг', val: Math.round(totals.p),  max: limits.p  },
+      { key:'na', label:'Натрий',  unit:'мг', val: Math.round(totals.na), max: limits.na },
+      { key:'fl', label:'Жидкость',unit:'мл', val: Math.round(totals.fluid), max: limits.fluid },
+    ];
+
+    nutrients.forEach(n => {
+      const pct = Math.min((n.val / n.max) * 100, 100);
+      const cls = pct > 90 ? 'danger' : pct > 70 ? 'warn' : 'ok';
+      const colors = { ok:'#27ae60', warn:'#e67e22', danger:'#e74c3c' };
+      const col = colors[cls];
+      const bar = document.createElement('div');
+      bar.innerHTML = `
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
+          <span style="font-weight:600;color:#3a4a5a">${n.label}</span>
+          <span style="color:${col}">${n.val} / ${n.max} ${n.unit}</span>
+        </div>
+        <div style="height:6px;background:#dde2e8;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;transition:width .4s"></div>
+        </div>`;
+      barsEl.appendChild(bar);
+    });
+
+    // По дням — кнопка раскрыть/скрыть
+    if (byDay?.length > 0) {
+      const toggle = document.createElement('button');
+      toggle.style.cssText = 'margin-top:8px;font-size:12px;color:#1a6ccc;background:none;border:none;cursor:pointer;padding:0';
+      toggle.textContent = '▼ Разбивка по дням';
+      let open = false;
+      toggle.onclick = () => {
+        open = !open;
+        toggle.textContent = open ? '▲ Скрыть' : '▼ Разбивка по дням';
+        byDayEl.style.display = open ? 'block' : 'none';
+      };
+      barsEl.appendChild(toggle);
+
+      byDayEl.innerHTML = byDay.map(d => {
+        const dateStr = new Date(d.date + 'T12:00:00').toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' });
+        const isDial  = dialysisDates?.includes(d.date);
+        const badge   = isDial ? '<span style="background:#e8f0fe;color:#1a6ccc;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px">💉 Диализ</span>' : '';
+        return `<div style="padding:4px 0;border-bottom:1px solid #e8ecf0">
+          <b>${dateStr}</b>${badge} —
+          K:${Math.round(d.k||0)}мг  P:${Math.round(d.p||0)}мг  Na:${Math.round(d.na||0)}мг
+          <span style="color:#888">${Math.round(d.cal||0)}ккал (${d.entries} прим.)</span>
+        </div>`;
+      }).join('');
+    }
+
+    // AI-рекомендации
+    if (recommendations) {
+      recEl.style.display = 'block';
+      recEl.innerHTML = `<div style="font-weight:700;color:#1a6ccc;margin-bottom:4px">🤖 Что можно есть дальше:</div>`
+        + recommendations
+            .split('\n')
+            .filter(l => l.trim())
+            .map(l => `<div style="margin:2px 0">${l}</div>`)
+            .join('');
+    }
+
+    // Предупреждения
+    if (warnings?.length) {
+      warnings.forEach(w => {
+        const el = document.createElement('div');
+        el.style.cssText = `margin-top:6px;padding:6px 8px;background:#fff8f0;border-left:3px solid ${w.color};border-radius:0 6px 6px 0;font-size:12px;color:${w.color}`;
+        el.textContent = w.text;
+        barsEl.appendChild(el);
+      });
+    }
+
+  } catch (e) {
+    if (barsEl) barsEl.innerHTML = `<div style="color:#999;font-size:12px">Ошибка загрузки периода: ${e.message}</div>`;
+  }
+}
+
 // ── Меню дня от AI ──
 async function loadDailyMenu() {
   const btn = document.getElementById('btnLoadMenu');
@@ -277,4 +373,14 @@ document.addEventListener('DOMContentLoaded', () => {
     foodDateEl.value = todayStr();
     foodDateEl.addEventListener('change', loadFoodToday);
   }
+
+  // Загрузить данные периода сразу
+  loadPeriodSummary();
 });
+
+// Перезагружать период при добавлении еды
+const _origAddFood = addFood;
+async function addFoodAndRefreshPeriod() {
+  await _origAddFood();
+  await loadPeriodSummary();
+}

@@ -264,6 +264,23 @@
       </div>
     </div>
 
+    <!-- ── Межсеансовый период ── -->
+    <div class="card" id="periodCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="card-label" style="margin:0">📅 Период с последнего диализа</div>
+        <span id="periodDaysLabel" style="font-size:12px;color:#888;background:#e8ecf0;padding:2px 8px;border-radius:10px">загрузка...</span>
+      </div>
+      <!-- Прогресс-бары периода -->
+      <div id="periodBars" style="display:flex;flex-direction:column;gap:6px">
+        <div class="loading-text" style="font-size:12px">⏳ Считаю накопленные нутриенты...</div>
+      </div>
+      <!-- По дням -->
+      <div id="periodByDay" style="margin-top:8px;font-size:12px;display:none"></div>
+      <!-- AI-рекомендации -->
+      <div id="periodRecommendations" style="margin-top:10px;font-size:13px;display:none;
+           background:#f0f7ff;border-left:3px solid #1a6ccc;padding:8px 10px;border-radius:0 8px 8px 0"></div>
+    </div>
+
     <!-- Дневные нормы -->
     <div class="card norms-card" id="foodNormsCard">
       <div class="norms-title">📊 Нормы на сегодня</div>
