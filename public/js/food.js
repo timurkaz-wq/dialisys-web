@@ -208,54 +208,79 @@ async function deleteFood(id) {
   }
 }
 
-// ── Межсеансовый период: накопленные нутриенты ──
+// ── Межсеансовый период — новая логика ──
 async function loadPeriodSummary() {
-  const barsEl   = document.getElementById('periodBars');
-  const daysEl   = document.getElementById('periodDaysLabel');
-  const byDayEl  = document.getElementById('periodByDay');
-  const recEl    = document.getElementById('periodRecommendations');
+  const barsEl  = document.getElementById('periodBars');
+  const daysEl  = document.getElementById('periodDaysLabel');
+  const byDayEl = document.getElementById('periodByDay');
+  const recEl   = document.getElementById('periodRecommendations');
   if (!barsEl) return;
 
   try {
     const data = await apiFetch('/food/period');
-    const { fromDate, toDate, days, byDay, totals, limits, warnings, dialysisDates, recommendations } = data;
+    const {
+      periodStart, periodEnd, nextDialysisDate,
+      totalDays, daysElapsed, daysRemaining,
+      nutrients, prediction, byDay, recommendations,
+    } = data;
 
-    // Заголовок периода
-    const fmt = d => new Date(d + 'T12:00:00').toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
-    daysEl.textContent = fromDate === toDate
-      ? `${fmt(fromDate)} (1 день)`
-      : `${fmt(fromDate)} — ${fmt(toDate)} (${days} дн.)`;
+    // ── Заголовок периода ──
+    const fmt = d => new Date(d + 'T12:00:00').toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' });
+    const nextFmt = new Date(nextDialysisDate + 'T12:00:00').toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' });
+    daysEl.innerHTML = `${fmt(periodStart)} → Диализ ${nextFmt} · <b style="color:#1a6ccc">осталось ${daysRemaining} дн.</b>`;
 
-    // Прогресс-бары накопленных нутриентов
     barsEl.innerHTML = '';
-    const nutrients = [
-      { key:'k',  label:'Калий',   unit:'мг', val: Math.round(totals.k),  max: limits.k  },
-      { key:'p',  label:'Фосфор',  unit:'мг', val: Math.round(totals.p),  max: limits.p  },
-      { key:'na', label:'Натрий',  unit:'мг', val: Math.round(totals.na), max: limits.na },
-      { key:'fl', label:'Жидкость',unit:'мл', val: Math.round(totals.fluid), max: limits.fluid },
+
+    // ── Прогресс-бары: потреблено / лимит периода ──
+    const nutrientCfg = [
+      { key:'k',     label:'Калий',    unit:'мг' },
+      { key:'p',     label:'Фосфор',   unit:'мг' },
+      { key:'na',    label:'Натрий',   unit:'мг' },
+      { key:'fluid', label:'Жидкость', unit:'мл' },
     ];
 
-    nutrients.forEach(n => {
-      const pct = Math.min((n.val / n.max) * 100, 100);
-      const cls = pct > 90 ? 'danger' : pct > 70 ? 'warn' : 'ok';
-      const colors = { ok:'#27ae60', warn:'#e67e22', danger:'#e74c3c' };
-      const col = colors[cls];
-      const bar = document.createElement('div');
-      bar.innerHTML = `
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
-          <span style="font-weight:600;color:#3a4a5a">${n.label}</span>
-          <span style="color:${col}">${n.val} / ${n.max} ${n.unit}</span>
+    nutrientCfg.forEach(({ key, label, unit }) => {
+      const n = nutrients?.[key];
+      if (!n) return;
+      const pct = Math.min(n.pct, 100);
+      const col = n.status.color;
+
+      const wrap = document.createElement('div');
+      wrap.style.marginBottom = '8px';
+      wrap.innerHTML = `
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;align-items:baseline">
+          <span style="font-weight:700;color:#3a4a5a">${n.status.icon} ${label}</span>
+          <span style="color:${col};font-size:11px">
+            ${n.consumed} / ${n.limit} ${unit}
+            <span style="color:#888;margin-left:4px">·</span>
+            <span style="color:#1a6ccc">можно ${n.safePerDay} ${unit}/день</span>
+          </span>
         </div>
-        <div style="height:6px;background:#dde2e8;border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;transition:width .4s"></div>
+        <div style="height:8px;background:#dde2e8;border-radius:5px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${col};border-radius:5px;transition:width .5s"></div>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:2px;text-align:right">
+          Осталось: <b style="color:${col}">${n.remain} ${unit}</b>
+          · Норма/день: ${n.dailyIdeal} ${unit}
         </div>`;
-      barsEl.appendChild(bar);
+      barsEl.appendChild(wrap);
     });
 
-    // По дням — кнопка раскрыть/скрыть
+    // ── Прогноз калия в крови ──
+    if (prediction) {
+      const pred = document.createElement('div');
+      pred.style.cssText = `margin-top:8px;padding:8px 10px;border-radius:8px;background:${prediction.risk.color}18;border:1px solid ${prediction.risk.color}44;font-size:12px`;
+      pred.innerHTML = `
+        <span style="font-weight:700;color:${prediction.risk.color}">${prediction.risk.icon} Прогноз K в крови перед диализом: ${prediction.k_blood} ммоль/л — ${prediction.risk.label}</span>
+        <span style="color:#888;font-size:11px;margin-left:6px">(базовый: ${prediction.baselineK} ммоль/л)</span>`;
+      barsEl.appendChild(pred);
+    }
+
+    // ── По дням (раскрываемый список) ──
     if (byDay?.length > 0) {
+      const dialDays = [2, 4, 6]; // Вт Чт Сб
       const toggle = document.createElement('button');
-      toggle.style.cssText = 'margin-top:8px;font-size:12px;color:#1a6ccc;background:none;border:none;cursor:pointer;padding:0';
+      toggle.style.cssText = 'margin-top:8px;font-size:12px;color:#1a6ccc;background:none;border:none;cursor:pointer;padding:2px 0;display:block';
       toggle.textContent = '▼ Разбивка по дням';
       let open = false;
       toggle.onclick = () => {
@@ -266,40 +291,33 @@ async function loadPeriodSummary() {
       barsEl.appendChild(toggle);
 
       byDayEl.innerHTML = byDay.map(d => {
-        const dateStr = new Date(d.date + 'T12:00:00').toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' });
-        const isDial  = dialysisDates?.includes(d.date);
+        const dt = new Date(d.date + 'T12:00:00');
+        const dateStr = dt.toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' });
+        const isDial  = dialDays.includes(dt.getDay());
         const badge   = isDial ? '<span style="background:#e8f0fe;color:#1a6ccc;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px">💉 Диализ</span>' : '';
-        return `<div style="padding:4px 0;border-bottom:1px solid #e8ecf0">
-          <b>${dateStr}</b>${badge} —
-          K:${Math.round(d.k||0)}мг  P:${Math.round(d.p||0)}мг  Na:${Math.round(d.na||0)}мг
-          <span style="color:#888">${Math.round(d.cal||0)}ккал (${d.entries} прим.)</span>
+        return `<div style="padding:5px 0;border-bottom:1px solid #e8ecf0;font-size:12px">
+          <b>${dateStr}</b>${badge}<br>
+          K:${Math.round(d.k||0)}мг &nbsp; P:${Math.round(d.p||0)}мг &nbsp; Na:${Math.round(d.na||0)}мг &nbsp;
+          <span style="color:#888">${Math.round(d.cal||0)} ккал &nbsp; (${d.entries} прим.)</span>
         </div>`;
       }).join('');
+    } else {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'font-size:12px;color:#888;margin-top:6px';
+      empty.textContent = 'Записей питания за период нет — начни вносить еду';
+      barsEl.appendChild(empty);
     }
 
-    // AI-рекомендации
+    // ── AI-рекомендации ──
     if (recommendations) {
       recEl.style.display = 'block';
-      recEl.innerHTML = `<div style="font-weight:700;color:#1a6ccc;margin-bottom:4px">🤖 Что можно есть дальше:</div>`
-        + recommendations
-            .split('\n')
-            .filter(l => l.trim())
-            .map(l => `<div style="margin:2px 0">${l}</div>`)
-            .join('');
-    }
-
-    // Предупреждения
-    if (warnings?.length) {
-      warnings.forEach(w => {
-        const el = document.createElement('div');
-        el.style.cssText = `margin-top:6px;padding:6px 8px;background:#fff8f0;border-left:3px solid ${w.color};border-radius:0 6px 6px 0;font-size:12px;color:${w.color}`;
-        el.textContent = w.text;
-        barsEl.appendChild(el);
-      });
+      recEl.innerHTML = `<div style="font-weight:700;color:#1a6ccc;margin-bottom:4px">🤖 Что можно есть:</div>`
+        + recommendations.split('\n').filter(l => l.trim())
+            .map(l => `<div style="margin:3px 0;color:#1a1e24">${l}</div>`).join('');
     }
 
   } catch (e) {
-    if (barsEl) barsEl.innerHTML = `<div style="color:#999;font-size:12px">Ошибка загрузки периода: ${e.message}</div>`;
+    if (barsEl) barsEl.innerHTML = `<div style="color:#e74c3c;font-size:12px">❌ Ошибка: ${e.message}</div>`;
   }
 }
 

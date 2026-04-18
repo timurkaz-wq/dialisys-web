@@ -8,6 +8,7 @@ const { analyzeFoodText } = require('../food_analysis');
 const { chatQwen }     = require('../llm');
 const calc             = require('../calculations');
 const cfg              = require('../config');
+const { getCalendarPeriod, calcPeriodData } = require('../period_calc');
 
 const router = Router();
 
@@ -30,22 +31,16 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/food/period — нутриенты за весь межсеансовый период (от посл. диализа до сегодня)
+// GET /api/food/period — межсеансовый период по КАЛЕНДАРЮ (новая логика)
 router.get('/period', async (req, res) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
 
-    // Последний сеанс диализа
-    const { rows: procs } = await query(
-      "SELECT date FROM procedures ORDER BY date DESC LIMIT 1"
-    );
-    const lastDialysisRaw  = procs[0]?.date;
-    const lastDialysisDate = lastDialysisRaw
-      ? new Date(lastDialysisRaw).toISOString().slice(0, 10)
-      : null;
-    const fromDate = lastDialysisDate || today;
+    // ── 1. Период по календарю (Вт/Чт/Сб) ──
+    const periodInfo = getCalendarPeriod();
+    const { periodStart, periodEnd, nextDialysisDate, totalDays, daysElapsed, daysRemaining } = periodInfo;
 
-    // Питание по дням за период
+    // ── 2. Питание за период по дням ──
     const { rows: byDay } = await query(`
       SELECT
         date::text,
@@ -59,88 +54,72 @@ router.get('/period', async (req, res) => {
       FROM food_logs
       WHERE date >= $1 AND date <= $2
       GROUP BY date ORDER BY date ASC
-    `, [fromDate, today]);
+    `, [periodStart, today]);
 
-    // Дни диализа в периоде
-    const { rows: dialProcs } = await query(
-      "SELECT date::text FROM procedures WHERE date >= $1 AND date <= $2 ORDER BY date ASC",
-      [fromDate, today]
-    );
-    const dialysisDates = dialProcs.map(r => r.date);
-
-    // Количество дней в периоде
-    const start = new Date(fromDate);
-    const end   = new Date(today);
-    const days  = Math.round((end - start) / 86400000) + 1;
-
-    // Суммарные нутриенты за период
-    const totals = byDay.reduce((acc, r) => ({
-      k:       acc.k       + parseFloat(r.k   || 0),
-      p:       acc.p       + parseFloat(r.p   || 0),
-      na:      acc.na      + parseFloat(r.na  || 0),
-      cal:     acc.cal     + parseFloat(r.cal || 0),
-      protein: acc.protein + parseFloat(r.protein || 0),
-      fluid:   acc.fluid   + parseFloat(r.fluid   || 0),
+    // ── 3. Суммарные нутриенты за период ──
+    const consumed = byDay.reduce((acc, r) => ({
+      k:       acc.k       + parseFloat(r.k      || 0),
+      p:       acc.p       + parseFloat(r.p      || 0),
+      na:      acc.na      + parseFloat(r.na     || 0),
+      cal:     acc.cal     + parseFloat(r.cal    || 0),
+      protein: acc.protein + parseFloat(r.protein|| 0),
+      fluid:   acc.fluid   + parseFloat(r.fluid  || 0),
     }), { k:0, p:0, na:0, cal:0, protein:0, fluid:0 });
 
-    // Нормы за период (дни × суточная норма)
-    const limits = {
-      k:     days * cfg.DAILY_K_MAX,
-      p:     days * cfg.DAILY_P_MAX,
-      na:    days * cfg.DAILY_NA_MAX,
-      fluid: days * cfg.DAILY_FLUID_MAX,
-    };
+    // ── 4. Базовый K из последнего анализа (для прогноза) ──
+    const { rows: anaRows } = await query(
+      'SELECT k FROM analyses ORDER BY month_key DESC LIMIT 1'
+    );
+    const baselineK = parseFloat(anaRows[0]?.k || 4.5);
 
-    // Предупреждения по периоду
-    const warnings = [];
-    const kPct  = totals.k  / limits.k  * 100;
-    const pPct  = totals.p  / limits.p  * 100;
-    const naPct = totals.na / limits.na * 100;
+    // ── 5. Расчёт по новой логике (фиксированный лимит на период) ──
+    const periodData = calcPeriodData(periodInfo, consumed, baselineK);
 
-    if (kPct > 90)  warnings.push({ nutrient:'K',  pct: Math.round(kPct),  text: `⚠️ Калий ${Math.round(totals.k)}/${limits.k} мг (${Math.round(kPct)}%) — избегай бананов, картофеля, орехов, сухофруктов`, color:'#e74c3c' });
-    else if (kPct > 70) warnings.push({ nutrient:'K', pct: Math.round(kPct), text: `🟡 Калий ${Math.round(totals.k)}/${limits.k} мг (${Math.round(kPct)}%) — приближается к норме`, color:'#e67e22' });
-
-    if (pPct > 90)  warnings.push({ nutrient:'P',  pct: Math.round(pPct),  text: `⚠️ Фосфор ${Math.round(totals.p)}/${limits.p} мг (${Math.round(pPct)}%) — избегай сыра, орехов, молочного, колбасы`, color:'#e74c3c' });
-    else if (pPct > 70) warnings.push({ nutrient:'P', pct: Math.round(pPct), text: `🟡 Фосфор ${Math.round(totals.p)}/${limits.p} мг (${Math.round(pPct)}%) — будь осторожен с молочным`, color:'#e67e22' });
-
-    if (naPct > 90) warnings.push({ nutrient:'Na', pct: Math.round(naPct), text: `⚠️ Натрий ${Math.round(totals.na)}/${limits.na} мг (${Math.round(naPct)}%) — не соли, избегай колбас и консервов`, color:'#e74c3c' });
-    else if (naPct > 70) warnings.push({ nutrient:'Na', pct: Math.round(naPct), text: `🟡 Натрий ${Math.round(totals.na)}/${limits.na} мг (${Math.round(naPct)}%) — меньше соли`, color:'#e67e22' });
-
-    // AI-рекомендации что можно есть при текущем уровне
+    // ── 6. AI-рекомендации что можно есть ──
     let recommendations = null;
     try {
-      recommendations = await _buildFoodRecommendations(totals, limits, days);
+      recommendations = await _buildRecommendations(periodData, daysRemaining);
     } catch (e) {
-      console.error('[Period] Ошибка рекомендаций:', e.message);
+      console.error('[Period] AI рекомендации:', e.message);
     }
 
-    res.json({ fromDate, toDate: today, days, lastDialysisDate, byDay, totals, limits, warnings, dialysisDates, recommendations });
+    res.json({
+      periodStart,
+      periodEnd,
+      nextDialysisDate,
+      totalDays,
+      daysElapsed,
+      daysRemaining,
+      consumed,
+      byDay,
+      ...periodData,   // nutrients{k,p,na,fluid}, prediction
+      recommendations,
+    });
   } catch (e) {
     console.error('[Period]', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// ── AI-рекомендации по питанию исходя из остатка нормы ──
-async function _buildFoodRecommendations(totals, limits, days) {
-  const remainK  = Math.max(0, limits.k  - totals.k);
-  const remainP  = Math.max(0, limits.p  - totals.p);
-  const remainNa = Math.max(0, limits.na - totals.na);
+// ── AI-рекомендации на основе остатка бюджета ──
+async function _buildRecommendations(periodData, daysRemaining) {
+  const { nutrients, prediction } = periodData;
+
+  const lines = Object.entries(nutrients).map(([key, n]) => {
+    const names = { k:'Калий', p:'Фосфор', na:'Натрий', fluid:'Жидкость' };
+    const units = { k:'мг', p:'мг', na:'мг', fluid:'мл' };
+    return `- ${names[key]}: потреблено ${n.consumed} / ${n.limit} ${units[key]} (${n.pct}%), осталось ${n.remain} ${units[key]}, можно ${n.safePerDay} ${units[key]}/день`;
+  }).join('\n');
 
   const messages = [
     {
       role: 'system',
-      content: `Ты — диетолог для пациентов на гемодиализе. Давай краткие конкретные советы что можно съесть.
-Отвечай на русском, кратко (3-4 пункта), в формате маркированного списка.`,
+      content: `Ты — диетолог для пациентов на гемодиализе. Давай краткие конкретные советы — что МОЖНО и что НЕЛЬЗЯ есть.
+Отвечай по-русски, 3-5 пунктов, маркированный список.`,
     },
     {
       role: 'user',
-      content: `Пациент за ${days} дней накопил:
-- Калий: ${Math.round(totals.k)} мг (лимит ${limits.k} мг, осталось ${Math.round(remainK)} мг)
-- Фосфор: ${Math.round(totals.p)} мг (лимит ${limits.p} мг, осталось ${Math.round(remainP)} мг)
-- Натрий: ${Math.round(totals.na)} мг (лимит ${limits.na} мг, осталось ${Math.round(remainNa)} мг)
-
-Что можно/нельзя есть в оставшееся время до следующего диализа? Дай конкретные рекомендации по продуктам.`,
+      content: `До следующего диализа осталось ${daysRemaining} дн. Текущий баланс нутриентов за период:\n${lines}\nПрогноз калия в крови: ${prediction.k_blood} ммоль/л (${prediction.risk.label})\n\nЧто можно есть? Конкретные продукты.`,
     },
   ];
 
